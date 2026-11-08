@@ -122,7 +122,7 @@ class FixtureFlowIT {
                 .collect(Collectors.toMap(XpathEntry::getName, x -> x));
         assertEquals("//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='notional']",
                 byName.get("notionalHeader").getAbsolute());
-        assertEquals(".//div[@role='row'][@row-index={row}-1]", byName.get("ordersRow").getValue());
+        assertEquals(".//div[@role='row'][@row-index=%s-1]", byName.get("ordersRow").getValue());
         assertEquals(4, byName.get("notionalCell").getInstances());
         assertTrue(byName.get("notionalCell").getUsed(), "notional cell used");
         assertTrue(byName.get("orderHeader").getUsed(), "sorted header used");
