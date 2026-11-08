@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<locator-coverage schema="2" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="24" total="119">
+<locator-coverage schema="2" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="29" total="141">
   <page name="TradeBlotter" route="/blotter/{id}" visits="3" used="3" total="45">
     <module name="MainNav" kind="NAV" xpath="//nav[@id='main-nav']" used="0" total="3">
       <xpath name="blotterLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
@@ -378,6 +378,78 @@
     <omitted type="PARAGRAPH" count="1"/>
     <omitted type="SPAN" count="1"/>
     <omitted type="DIV" count="4"/>
+  </page>
+  <page name="OrderGrid" route="/grid" visits="1" used="5" total="22">
+    <module name="Orders" kind="LANDMARK" xpath="//main[.//h1[normalize-space()='Orders']]" used="0" total="4">
+      <xpath name="ordersHeading" type="HEADING" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//h1[normalize-space()='Orders']"
+             absolute="//main[.//h1[normalize-space()='Orders']]//h1[normalize-space()='Orders']"/>
+      <xpath name="quickFilterLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='quick-filter']"
+             absolute="//main[.//h1[normalize-space()='Orders']]//label[@for='quick-filter']"/>
+      <xpath name="quickFilterInput" type="TEXT_INPUT" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//input[@id='quick-filter']"
+             absolute="//main[.//h1[normalize-space()='Orders']]//input[@id='quick-filter']"/>
+      <xpath name="ordersTable" type="TABLE" strategy="TESTID" stability="HIGH" matches="1" used="false"
+             value=".//*[@data-testid='orders-grid']"
+             absolute="//main[.//h1[normalize-space()='Orders']]//*[@data-testid='orders-grid']"/>
+    </module>
+    <module name="OrdersGrid" kind="GRID" xpath="//div[@data-testid='orders-grid']" used="5" total="18">
+      <xpath name="selectionHeader" type="TABLE_HEADER" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='columnheader'][@col-id='ag-Grid-SelectionColumn']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='ag-Grid-SelectionColumn']"/>
+      <xpath name="selectionCheckbox" type="CHECKBOX" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='columnheader'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"/>
+      <xpath name="orderHeader" type="TABLE_HEADER" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="true"
+             value=".//div[@role='columnheader'][@col-id='orderId']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='orderId']"/>
+      <xpath name="clientHeader" type="TABLE_HEADER" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='columnheader'][@col-id='client']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='client']"/>
+      <xpath name="sideHeader" type="TABLE_HEADER" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='columnheader'][@col-id='side']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='side']"/>
+      <xpath name="notionalHeader" type="TABLE_HEADER" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='columnheader'][@col-id='notional']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='notional']"/>
+      <xpath name="statusHeader" type="TABLE_HEADER" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='columnheader'][@col-id='status']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='status']"/>
+      <xpath name="actionsHeader" type="TABLE_HEADER" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='columnheader'][@col-id='actions']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='actions']"/>
+      <xpath name="ordersRow" type="TABLE_ROW" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
+             value=".//div[@role='row'][@row-index={row}-1]"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]"/>
+      <xpath name="selectionCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']"/>
+      <xpath name="selectionCheckbox2" type="CHECKBOX" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"/>
+      <xpath name="orderCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='orderId']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='orderId']"/>
+      <xpath name="clientCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='client']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='client']"/>
+      <xpath name="sideCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='side']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='side']"/>
+      <xpath name="notionalCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='notional']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='notional']"/>
+      <xpath name="statusCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='status']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='status']"/>
+      <xpath name="actionsCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']"/>
+      <xpath name="cancelButton" type="BUTTON" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
+             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']"/>
+    </module>
   </page>
   <page name="Login" route="/login" visits="1" used="2" total="11">
     <module name="StrataMarkets" kind="LANDMARK" xpath="//header[.//h1[normalize-space()='Strata Markets']]" used="0" total="1">
