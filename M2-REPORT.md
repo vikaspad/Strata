@@ -1,10 +1,10 @@
 # M2 Report: Coverage and Locator Quality
 
-**Status: M2 Must items complete; `./gradlew check` green in all three modules.**
+**Status: M2 Must items and the AG Grid adapter are complete; `./gradlew check` is green in all three modules.**
 
 | Done | Not done |
 |---|---|
-| 21 components, usage + coverage %, stability, M1 quality fixes, dropdown overlays and options, same-origin iframes, overhead rule A+B+C | AG Grid adapter and Gradle-delegated runs (both *Should*, see below) |
+| 21 components, usage + coverage %, stability, M1 quality fixes, dropdown overlays and options, same-origin iframes, overhead rule A+B+C, **AG Grid adapter** | Gradle-delegated runs (*Should*, see below) |
 | | Manual right-click checks in a real IDE (M1 #1, M2 needs the same) |
 
 ## Acceptance criteria (CLAUDE.md v0.2.0 §10)
@@ -20,7 +20,8 @@
 | 6 | Overlay listbox and menu → `CONTAINER_CHANGE` + `OPTION` entries | **Pass** | Components triggers: GET, CONTAINER_CHANGE, CONTAINER_CHANGE |
 | 7 | Same-origin frame → `<frame>` with usage; cross-origin → `IFRAME` entry, content `skipped` | **Pass** | `Help` frame with `questionInput` used; `iframe#ext-frame` skipped |
 | 8 | M1 criteria 3–7 still hold | **Pass** | Same tests as M1, updated for the repeated-label exception |
-| 9 | `./gradlew check` green | **Pass** | core 92 tests; agent 20 unit tests + 2 integration flows × 3 runs (JDK 17, JDK 21, unwritable); plugin 9 |
+| 9 | `./gradlew check` green | **Pass** | core 99 tests; agent 20 unit tests + 3 integration flows × 3 runs (JDK 17, JDK 21, unwritable); plugin 9 |
+| 10 | AG Grid: GRID module with `col-id` templates, usage, no row keys on disk | **Pass** | `FixtureFlowIT.gridFlow` (AG Grid 36.2.0 in Chrome); `AgGridTest`; `GoldenXmlTest.agGridIsModelledByColumn` |
 
 ## Overhead
 
@@ -72,9 +73,35 @@ Of the LOW entries, 39 are TEXT; the rest are 3 ROW_TEMPLATE, 2 POSITIONAL and 2
 2. **The same row action appears twice after merging.** On blotter 48213, *View* repeats across two rows, so its text is kept: `tr[{row}]//button[normalize-space()='View']`. Blotter 99001 has a single row, so the text stays redacted, and that visit produces `tr[{row}]/td[4]/descendant::button[1]` (LOW). Merging dedupes by XPath, so both entries survive. Fix: when merging, collapse templates that point at the same column action, and keep the stronger one.
 3. **`<main>` collects a lot.** With `main` as a LANDMARK module, everything not inside a smaller container lands in one "Main" module: 13 mixed entries on the components page, including the table, iframes, lists and dropdown toggles. That's better than `//body`, but still coarse. Grouping by nearest heading (`h2` sections without a `<section>` tag) would help.
 
+## AG Grid adapter
+
+**Spike.** AG Grid Community 36.2.0 is vendored in the fixtures. Its DOM differs from older versions: there's no `.ag-center-cols-container`, and rows sit under `.ag-grid-scrolling-cells`. What is stable:
+
+| Element | Hook |
+|---|---|
+| grid | `role=grid` |
+| header and cell | `col-id` (the field name) |
+| row | `row-index` |
+
+**Before the adapter**, on the grid page:
+- 21 entries, almost all POSITIONAL, like `(//div[@data-testid='orders-grid']//div)[69]`;
+- 125 AG Grid internals counted as omitted content;
+- checkboxes located by AG Grid's generated ids (`ag-22-input`) and rated HIGH;
+- **the app's `getRowId` keys (`row-id="O-48213"`, order numbers) written to disk**.
+
+**After the adapter:**
+- one GRID module with 18 entries, all MEDIUM: 7 headers, a select-all checkbox, a row template, 7 cell templates, a row-checkbox template and the *Cancel* button template;
+- 0 omitted;
+- `row-id` stripped;
+- `ag-N-` ids classed as dynamic.
+- The test's sort click, cell reads and *Cancel* click all show up as `used`.
+
+**Not covered by the adapter:**
+- Row templates are dropped when pinned columns split a row; cells still work.
+- Only AG Grid is supported. Generic ARIA grids built from `div`s without `tbody` still get only the generic rules.
+
 ## What was not built, and why
 
-- **AG Grid adapter (Should).** It needs a vendored AG Grid build in the fixtures and a spike to confirm the DOM attributes (`col-id`, `row-index`). The generic rules partly cover a grid today: `[role=grid]` → TABLE, column headers keep their text. But no `@col-id` templates exist yet. This is the next item.
 - **Gradle-delegated runs (Should).** These need the IntelliJ Gradle plugin's run-configuration extension and an init script. They can't be verified without driving a real IDE. The menu item still only appears on IntelliJ-run (non-delegated) configurations.
 - **Manual IDE checks.** Neither the right-click flow nor the balloon has been seen in a running IDE. The plugin tests cover the patcher, runner and notification text.
 
