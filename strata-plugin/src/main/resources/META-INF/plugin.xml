@@ -1,0 +1,26 @@
+<idea-plugin>
+  <id>dev.strata</id>
+  <name>Strata Locator Coverage</name>
+  <vendor>Strata</vendor>
+  <description><![CDATA[
+    Adds <b>Run with Locator Coverage</b> to Java, JUnit and Cucumber run configurations. The test runs normally
+    with a Selenium agent attached; when it ends, the IDE writes <code>.strata/locator-coverage.xml</code> with a
+    verified page / module / XPath model of every page the test visited.
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.java</depends>
+  <!-- Cucumber-Java configs extend ApplicationConfiguration, so AgentPatcher already covers them. -->
+  <depends optional="true" config-file="strata-cucumber.xml">cucumber-java</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <executor implementation="dev.strata.plugin.LocatorCoverageExecutor"/>
+    <programRunner implementation="dev.strata.plugin.LocatorCoverageRunner"/>
+    <java.programPatcher implementation="dev.strata.plugin.AgentPatcher"/>
+    <notificationGroup id="Strata" displayType="BALLOON"/>
+  </extensions>
+
+  <projectListeners>
+    <listener class="dev.strata.plugin.StrataExecutionListener" topic="com.intellij.execution.ExecutionListener"/>
+  </projectListeners>
+</idea-plugin>
