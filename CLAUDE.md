@@ -1,6 +1,6 @@
 # CLAUDE.md — Strata: Run with Locator Coverage
 
-**Version:** v0.2.2 · **Milestone:** M2 · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
+**Version:** v0.3.0 · **Milestone:** M2 · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
 
 > Assumptions:
 > - A1. The target framework is on **Selenium 4.x**. Every command funnels through `RemoteWebDriver.execute(CommandPayload)`.
@@ -130,7 +130,7 @@ data class XpathEntry(
     val stability: Stability,     // §5.8
     val used: Boolean = false,
     val instances: Int = 1        // instances a template verified against
-)   // a value containing {row}, {n} or {text} is a template (§5.9)
+)   // a ROW_TEMPLATE or TEXT_TEMPLATE entry is a template: value and absolute hold one %s (§5.9)
 enum class ElementType {
     BUTTON, LINK, TEXT_INPUT, PASSWORD, DROPDOWN, OPTION, CHECKBOX, RADIO, TEXTAREA, TAB, ICON,
     TABLE, TABLE_ROW, TABLE_HEADER, TABLE_CELL, HEADING, LABEL, PARAGRAPH, SPAN, DIV, LIST, LIST_ITEM, IFRAME,
@@ -310,6 +310,8 @@ Dynamic ids are never written into any XPath; the same check applies to test ids
 - `MEDIUM`: everything else
 
 ### 5.9 Templates
+**Output form:** the rules below write the dynamic part as `{row}` (1-based row), `{n}` (1-based item or card) and `{text}` (option text) to say what it stands for. Emitted entries carry `%s` in its place, and any literal `%` is escaped as `%%`, e.g. `./tbody/tr[%s]` or `.//option[normalize-space()='%s']`. Each template has exactly one `%s`.
+
 Templates are verified for every instance in the snapshot. For each `i`, the substituted XPath must select exactly instance `i`, both within the module and from the root. `instances` records how many instances were verified.
 
 - **Table**, relative to the table module (`.`) or the table's own entry:
@@ -409,16 +411,16 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
 
 ---
 
-## 8. XML output (schema v2, exact)
+## 8. XML output (schema v3, exact)
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<locator-coverage schema="2" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="24" total="119">
+<locator-coverage schema="3" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="24" total="119">
   <page name="Components" route="/components" visits="3" used="19" total="63">
     <module name="ProfileForm" kind="FORM" xpath="//form[@id='profile-form']" used="6" total="15">
       <xpath name="countryOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
-             value=".//select[@id='country']//option[normalize-space()='{text}']"
-             absolute="//form[@id='profile-form']//select[@id='country']//option[normalize-space()='{text}']"/>
+             value=".//select[@id='country']//option[normalize-space()='%s']"
+             absolute="//form[@id='profile-form']//select[@id='country']//option[normalize-space()='%s']"/>
     </module>
     <frame name="Help" xpath="//main//iframe[@id='help-frame']" route="/frame.html" used="1" total="4">
       <module …>…</module>
@@ -521,6 +523,7 @@ When §10 passes: **stop**. Write `M2-REPORT.md` with the overhead numbers (incl
 - Changing any contract in §3 or the schema in §8 requires bumping this file's version and a changelog line. Ask first.
 
 ## Changelog
+- **v0.3.0**: Templates are emitted with `%s` for the dynamic part instead of `{row}`, `{n}` and `{text}`, so they fill with `String.format(xpath, value)`; a literal `%` is written `%%`. `XpathEntry.isTemplate` is decided by strategy, and `absoluteFor(arg)` fills one in. XML schema 3. The named placeholders in §5.9–5.13 describe what `%s` stands for.
 - **v0.2.2**: Cards (§5.13): `{n}` templates for controls in repeated sibling containers. Forms without an id, test id, label or heading get a module XPath from `@name`, `@action` or a class (§5.3).
 - **v0.2.1**: AG Grid adapter (§5.12): `ModuleKind.GRID`, the grid-host module fallback XPath, `^ag-\d+-` added to the dynamic ids, and `row-id`/`row-business-key`/cell `title` stripped by redaction.
 - **v0.2.0**: M2, approved 2026-11-07.
