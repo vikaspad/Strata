@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Components</title>
+  <script src="/components.js" defer></script>
+</head>
+<body>
+<!-- Fixture for M2 acceptance criterion 0: one of each of the 21 required components. -->
+<header>
+  <h1>Account settings</h1>
+  <img src="/logo.png" alt="Strata logo" width="16" height="16">
+</header>
+
+<nav aria-label="Primary">
+  <ul data-testid="primary-links">
+    <li><a href="/login">Login</a></li>
+    <li><a href="/blotter/48213">Blotter</a></li>
+    <li><a href="/components">Components</a></li>
+  </ul>
+</nav>
+
+<main>
+  <form id="profile-form">
+    <label for="full-name">Full name</label>
+    <input id="full-name" name="fullName" type="text" value="Jane Doe">
+    <label for="mat-input-21">Email</label>
+    <input id="mat-input-21" type="email" value="jane@client.example">
+    <label for="pw">Password</label>
+    <input id="pw" name="password" type="password" value="hunter2">
+    <label for="bio">Bio</label>
+    <textarea id="bio" name="bio">Private notes about the client</textarea>
+    <label for="country">Country</label>
+    <select id="country" name="country">
+      <option value="nl">Netherlands</option>
+      <option value="in">India</option>
+      <option value="us">United States</option>
+    </select>
+    <label><input type="checkbox" name="newsletter"> Newsletter</label>
+    <fieldset>
+      <legend>Contact by</legend>
+      <label><input type="radio" name="contact" value="email"> Email me</label>
+      <label><input type="radio" name="contact" value="phone"> Call me</label>
+    </fieldset>
+    <button type="submit">Save profile</button>
+    <a class="help-link">Help</a>
+  </form>
+
+  <section aria-label="Toolbar">
+    <button type="button" aria-label="Download"><i class="fa fa-download"></i></button>
+    <span class="material-icons" title="Settings">settings</span>
+    <svg data-icon="bell" width="16" height="16"><circle cx="8" cy="8" r="6"></circle></svg>
+    <mat-icon>home</mat-icon>
+    <i class="fa fa-solid"></i>
+  </section>
+
+  <div class="dropdown">
+    <button type="button" id="currency-toggle" aria-haspopup="listbox">Currency</button>
+  </div>
+  <div class="dropdown">
+    <button type="button" id="actions-toggle" aria-haspopup="menu">Actions</button>
+  </div>
+
+  <table id="positions">
+    <caption>Positions</caption>
+    <thead>
+    <tr><th>Instrument</th><th>Quantity</th><th>Price</th><th></th></tr>
+    </thead>
+    <tbody>
+    <tr><td>AAPL</td><td>100</td><td>190.12</td><td><button type="button">Close</button></td></tr>
+    <tr><td>MSFT</td><td>50</td><td>410.55</td><td><button type="button">Close</button></td></tr>
+    <tr><td>NVDA</td><td>20</td><td>120.01</td><td><button type="button">Close</button></td></tr>
+    </tbody>
+  </table>
+
+  <p id="disclaimer">Prices are delayed by 15 minutes.</p>
+  <p>Client Halvorsen holds 3 positions.</p>
+  <span data-testid="last-updated">Updated 10:42</span>
+  <span>Meridian Capital</span>
+  <div role="status">Saved</div>
+  <div class="card">Plain card with client data</div>
+
+  <ol aria-label="Recent trades">
+    <li>Bought AAPL for Halvorsen</li>
+    <li>Sold MSFT for Meridian</li>
+  </ol>
+
+  <iframe id="help-frame" title="Help" src="/frame.html" width="300" height="120"></iframe>
+  <iframe id="ext-frame" title="External" width="300" height="120"></iframe>
+</main>
+
+<footer>
+  <a href="/terms">Terms</a>
+</footer>
+</body>
+</html>

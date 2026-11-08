@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<locator-coverage schema="2" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="24" total="119">
+  <page name="TradeBlotter" route="/blotter/{id}" visits="3" used="3" total="45">
+    <module name="MainNav" kind="NAV" xpath="//nav[@id='main-nav']" used="0" total="3">
+      <xpath name="blotterLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Blotter']"
+             absolute="//nav[@id='main-nav']//a[normalize-space()='Blotter']"/>
+      <xpath name="reportsLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Reports']"
+             absolute="//nav[@id='main-nav']//a[normalize-space()='Reports']"/>
+      <xpath name="logOutLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Log out']"
+             absolute="//nav[@id='main-nav']//a[normalize-space()='Log out']"/>
+    </module>
+    <module name="Main" kind="LANDMARK" xpath="//main" used="0" total="2">
+      <xpath name="h1Heading" type="HEADING" strategy="POSITIONAL" stability="LOW" matches="1" used="false"
+             value="(.//h1)[1]"
+             absolute="(//main//h1)[1]"/>
+      <xpath name="chartFrame" type="IFRAME" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//iframe[@id='chart']"
+             absolute="//main//iframe[@id='chart']"/>
+    </module>
+    <module name="BlotterFilterForm" kind="FORM" xpath="//form[@id='blotter-filter']" used="1" total="9">
+      <xpath name="tradeDateLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Trade date']"
+             absolute="//form[@id='blotter-filter']//label[normalize-space()='Trade date']"/>
+      <xpath name="tradeDateInput" type="TEXT_INPUT" strategy="LABEL_FOR" stability="MEDIUM" matches="1" used="false"
+             value=".//input[@id=//label[normalize-space()='Trade date']/@for]"
+             absolute="//form[@id='blotter-filter']//input[@id=//label[normalize-space()='Trade date']/@for]"/>
+      <xpath name="accountLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Account']"
+             absolute="//form[@id='blotter-filter']//label[normalize-space()='Account']"/>
+      <xpath name="accountDropdown" type="DROPDOWN" strategy="NAME" stability="HIGH" matches="1" used="false"
+             value=".//select[@name='account']"
+             absolute="//form[@id='blotter-filter']//select[@name='account']"/>
+      <xpath name="accountOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value=".//select[@name='account']//option[normalize-space()='{text}']"
+             absolute="//form[@id='blotter-filter']//select[@name='account']//option[normalize-space()='{text}']"/>
+      <xpath name="counterpartyInput" type="TEXT_INPUT" strategy="NAME" stability="HIGH" matches="1" used="false"
+             value=".//input[@name='counterparty']"
+             absolute="//form[@id='blotter-filter']//input[@name='counterparty']"/>
+      <xpath name="notesTextarea" type="TEXTAREA" strategy="NAME" stability="HIGH" matches="1" used="false"
+             value=".//textarea[@name='notes']"
+             absolute="//form[@id='blotter-filter']//textarea[@name='notes']"/>
+      <xpath name="applyFiltersButton" type="BUTTON" strategy="ARIA_LABEL" stability="MEDIUM" matches="1" used="true"
+             value=".//button[@aria-label='Apply filters']"
+             absolute="//form[@id='blotter-filter']//button[@aria-label='Apply filters']"/>
+      <xpath name="resetButton" type="BUTTON" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//button[normalize-space()='Reset']"
+             absolute="//form[@id='blotter-filter']//button[normalize-space()='Reset']"/>
+    </module>
+    <module name="Tablist" kind="GROUP" xpath="//div[@role='tablist']" used="0" total="2">
+      <xpath name="openTab" type="TAB" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//button[@id='tab-open']"
+             absolute="//div[@role='tablist']//button[@id='tab-open']"/>
+      <xpath name="settledTab" type="TAB" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//button[@id='tab-settled']"
+             absolute="//div[@role='tablist']//button[@id='tab-settled']"/>
+    </module>
+    <module name="TradeGrid" kind="SECTION" xpath="//section[@data-testid='trade-grid']" used="1" total="4">
+      <xpath name="tradesHeading" type="HEADING" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//h2[normalize-space()='Trades']"
+             absolute="//section[@data-testid='trade-grid']//h2[normalize-space()='Trades']"/>
+      <xpath name="exportButton" type="BUTTON" strategy="ARIA_LABEL" stability="MEDIUM" matches="1" used="true"
+             value=".//button[@aria-label='Export']"
+             absolute="//section[@data-testid='trade-grid']//button[@aria-label='Export']"/>
+      <xpath name="exportIcon" type="ICON" strategy="STRUCTURE" stability="MEDIUM" matches="1" used="false"
+             value=".//button[@aria-label='Export']//*[local-name()='svg']"
+             absolute="//section[@data-testid='trade-grid']//button[@aria-label='Export']//*[local-name()='svg']"/>
+      <xpath name="tradesTable" type="TABLE" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//table[@id='trades']"
+             absolute="//section[@data-testid='trade-grid']//table[@id='trades']"/>
+    </module>
+    <module name="Trades" kind="TABLE" xpath="//table[@id='trades']" used="0" total="12">
+      <xpath name="tradesHeaderRow" type="TABLE_ROW" strategy="STRUCTURE" stability="MEDIUM" matches="1" used="false"
+             value="./thead/tr"
+             absolute="//table[@id='trades']/thead/tr"/>
+      <xpath name="tradeHeader" type="TABLE_HEADER" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[normalize-space()='Trade']"
+             absolute="//table[@id='trades']/thead/tr/th[normalize-space()='Trade']"/>
+      <xpath name="clientHeader" type="TABLE_HEADER" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[normalize-space()='Client']"
+             absolute="//table[@id='trades']/thead/tr/th[normalize-space()='Client']"/>
+      <xpath name="notionalHeader" type="TABLE_HEADER" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[normalize-space()='Notional']"
+             absolute="//table[@id='trades']/thead/tr/th[normalize-space()='Notional']"/>
+      <xpath name="column4Header" type="TABLE_HEADER" strategy="STRUCTURE" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[4]"
+             absolute="//table[@id='trades']/thead/tr/th[4]"/>
+      <xpath name="tradesRow" type="TABLE_ROW" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value="./tbody/tr[{row}]"
+             absolute="//table[@id='trades']/tbody/tr[{row}]"/>
+      <xpath name="tradeCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Trade']/preceding-sibling::th)+1]"
+             absolute="//table[@id='trades']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Trade']/preceding-sibling::th)+1]"/>
+      <xpath name="clientCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Client']/preceding-sibling::th)+1]"
+             absolute="//table[@id='trades']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Client']/preceding-sibling::th)+1]"/>
+      <xpath name="notionalCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Notional']/preceding-sibling::th)+1]"
+             absolute="//table[@id='trades']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Notional']/preceding-sibling::th)+1]"/>
+      <xpath name="column4Cell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="LOW" matches="1" instances="2" used="false"
+             value="./tbody/tr[{row}]/td[4]"
+             absolute="//table[@id='trades']/tbody/tr[{row}]/td[4]"/>
+      <xpath name="viewButton" type="BUTTON" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value="./tbody/tr[{row}]//button[normalize-space()='View']"
+             absolute="//table[@id='trades']/tbody/tr[{row}]//button[normalize-space()='View']"/>
+      <xpath name="column4Button" type="BUTTON" strategy="ROW_TEMPLATE" stability="LOW" matches="1" instances="1" used="false"
+             value="./tbody/tr[{row}]/td[4]/descendant::button[1]"
+             absolute="//table[@id='trades']/tbody/tr[{row}]/td[4]/descendant::button[1]"/>
+    </module>
+    <module name="Page" kind="PAGE_ROOT" xpath="//body" used="1" total="1">
+      <xpath name="exportTradesDiv" type="DIV" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//div[@id='export-dialog']"
+             absolute="//body//div[@id='export-dialog']"/>
+    </module>
+    <module name="ExportDialog" kind="DIALOG" xpath="//div[@id='export-dialog']" used="0" total="8">
+      <xpath name="exportTradesHeading" type="HEADING" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//h2[normalize-space()='Export trades']"
+             absolute="//div[@id='export-dialog']//h2[normalize-space()='Export trades']"/>
+      <xpath name="formatLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='export-format']"
+             absolute="//div[@id='export-dialog']//label[@for='export-format']"/>
+      <xpath name="formatDropdown" type="DROPDOWN" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//select[@id='export-format']"
+             absolute="//div[@id='export-dialog']//select[@id='export-format']"/>
+      <xpath name="formatOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value=".//select[@id='export-format']//option[normalize-space()='{text}']"
+             absolute="//div[@id='export-dialog']//select[@id='export-format']//option[normalize-space()='{text}']"/>
+      <xpath name="includeCancelledLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Include cancelled']"
+             absolute="//div[@id='export-dialog']//label[normalize-space()='Include cancelled']"/>
+      <xpath name="includeCancelledCheckbox" type="CHECKBOX" strategy="NAME" stability="HIGH" matches="1" used="false"
+             value=".//input[@name='includeCancelled']"
+             absolute="//div[@id='export-dialog']//input[@name='includeCancelled']"/>
+      <xpath name="downloadButton" type="BUTTON" strategy="TESTID" stability="HIGH" matches="1" used="false"
+             value=".//*[@data-testid='export-download']"
+             absolute="//div[@id='export-dialog']//*[@data-testid='export-download']"/>
+      <xpath name="cancelButton" type="BUTTON" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//button[normalize-space()='Cancel']"
+             absolute="//div[@id='export-dialog']//button[normalize-space()='Cancel']"/>
+    </module>
+    <module name="Allocations" kind="SECTION" xpath="//section[@id='allocations']" used="0" total="4">
+      <xpath name="allocationsHeading" type="HEADING" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//h2[normalize-space()='Allocations']"
+             absolute="//section[@id='allocations']//h2[normalize-space()='Allocations']"/>
+      <xpath name="quantityLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='alloc-qty']"
+             absolute="//section[@id='allocations']//label[@for='alloc-qty']"/>
+      <xpath name="quantityInput" type="TEXT_INPUT" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//input[@id='alloc-qty']"
+             absolute="//section[@id='allocations']//input[@id='alloc-qty']"/>
+      <xpath name="allocateButton" type="BUTTON" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//button[normalize-space()='Allocate']"
+             absolute="//section[@id='allocations']//button[normalize-space()='Allocate']"/>
+    </module>
+    <omitted type="PARAGRAPH" count="1"/>
+  </page>
+  <page name="Components" route="/components" visits="3" used="19" total="63">
+    <module name="AccountSettings" kind="LANDMARK" xpath="//header[.//h1[normalize-space()='Account settings']]" used="0" total="2">
+      <xpath name="accountSettingsHeading" type="HEADING" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//h1[normalize-space()='Account settings']"
+             absolute="//header[.//h1[normalize-space()='Account settings']]//h1[normalize-space()='Account settings']"/>
+      <xpath name="strataLogoIcon" type="ICON" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//img[@alt='Strata logo']"
+             absolute="//header[.//h1[normalize-space()='Account settings']]//img[@alt='Strata logo']"/>
+    </module>
+    <module name="Primary" kind="NAV" xpath="//nav[@aria-label='Primary']" used="0" total="2">
+      <xpath name="primaryLinksList" type="LIST" strategy="TESTID" stability="HIGH" matches="1" used="false"
+             value=".//*[@data-testid='primary-links']"
+             absolute="//nav[@aria-label='Primary']//*[@data-testid='primary-links']"/>
+      <xpath name="primaryLinksItem" type="LIST_ITEM" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
+             value=".//*[@data-testid='primary-links']/li[{n}]"
+             absolute="//nav[@aria-label='Primary']//*[@data-testid='primary-links']/li[{n}]"/>
+    </module>
+    <module name="PrimaryLinks" kind="ANCHORED" xpath="//ul[@data-testid='primary-links']" used="0" total="3">
+      <xpath name="loginLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Login']"
+             absolute="//ul[@data-testid='primary-links']//a[normalize-space()='Login']"/>
+      <xpath name="blotterLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Blotter']"
+             absolute="//ul[@data-testid='primary-links']//a[normalize-space()='Blotter']"/>
+      <xpath name="componentsLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Components']"
+             absolute="//ul[@data-testid='primary-links']//a[normalize-space()='Components']"/>
+    </module>
+    <module name="Main" kind="LANDMARK" xpath="//main" used="6" total="13">
+      <xpath name="currencyDropdown" type="DROPDOWN" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//button[@id='currency-toggle']"
+             absolute="//main//button[@id='currency-toggle']"/>
+      <xpath name="actionsDropdown" type="DROPDOWN" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//button[@id='actions-toggle']"
+             absolute="//main//button[@id='actions-toggle']"/>
+      <xpath name="positionsTable" type="TABLE" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//table[@id='positions']"
+             absolute="//main//table[@id='positions']"/>
+      <xpath name="disclaimerParagraph" type="PARAGRAPH" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//p[@id='disclaimer']"
+             absolute="//main//p[@id='disclaimer']"/>
+      <xpath name="lastUpdatedSpan" type="SPAN" strategy="TESTID" stability="HIGH" matches="1" used="false"
+             value=".//*[@data-testid='last-updated']"
+             absolute="//main//*[@data-testid='last-updated']"/>
+      <xpath name="statusDiv" type="DIV" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//div[@role='status']"
+             absolute="//main//div[@role='status']"/>
+      <xpath name="recentTradesList" type="LIST" strategy="ARIA_LABEL" stability="MEDIUM" matches="1" used="false"
+             value=".//ol[@aria-label='Recent trades']"
+             absolute="//main//ol[@aria-label='Recent trades']"/>
+      <xpath name="recentTradesItem" type="LIST_ITEM" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value=".//ol[@aria-label='Recent trades']/li[{n}]"
+             absolute="//main//ol[@aria-label='Recent trades']/li[{n}]"/>
+      <xpath name="helpFrame" type="IFRAME" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//iframe[@id='help-frame']"
+             absolute="//main//iframe[@id='help-frame']"/>
+      <xpath name="extFrame" type="IFRAME" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//iframe[@id='ext-frame']"
+             absolute="//main//iframe[@id='ext-frame']"/>
+      <xpath name="actionsList" type="LIST" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//ul[@id='actions-menu']"
+             absolute="//main//ul[@id='actions-menu']"/>
+      <xpath name="actionsItem" type="LIST_ITEM" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
+             value=".//ul[@id='actions-menu']/li[{n}]"
+             absolute="//main//ul[@id='actions-menu']/li[{n}]"/>
+      <xpath name="span" type="SPAN" strategy="POSITIONAL" stability="LOW" matches="1" used="true"
+             value="(.//span)[3]"
+             absolute="(//main//span)[3]"/>
+    </module>
+    <module name="ProfileForm" kind="FORM" xpath="//form[@id='profile-form']" used="6" total="15">
+      <xpath name="fullNameLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='full-name']"
+             absolute="//form[@id='profile-form']//label[@for='full-name']"/>
+      <xpath name="fullNameInput" type="TEXT_INPUT" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//input[@id='full-name']"
+             absolute="//form[@id='profile-form']//input[@id='full-name']"/>
+      <xpath name="emailLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Email']"
+             absolute="//form[@id='profile-form']//label[normalize-space()='Email']"/>
+      <xpath name="emailInput" type="TEXT_INPUT" strategy="LABEL_FOR" stability="MEDIUM" matches="1" used="false"
+             value=".//input[@id=//label[normalize-space()='Email']/@for]"
+             absolute="//form[@id='profile-form']//input[@id=//label[normalize-space()='Email']/@for]"/>
+      <xpath name="passwordLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='pw']"
+             absolute="//form[@id='profile-form']//label[@for='pw']"/>
+      <xpath name="passwordInput" type="PASSWORD" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//input[@id='pw']"
+             absolute="//form[@id='profile-form']//input[@id='pw']"/>
+      <xpath name="bioLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='bio']"
+             absolute="//form[@id='profile-form']//label[@for='bio']"/>
+      <xpath name="bioTextarea" type="TEXTAREA" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//textarea[@id='bio']"
+             absolute="//form[@id='profile-form']//textarea[@id='bio']"/>
+      <xpath name="countryLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='country']"
+             absolute="//form[@id='profile-form']//label[@for='country']"/>
+      <xpath name="countryDropdown" type="DROPDOWN" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//select[@id='country']"
+             absolute="//form[@id='profile-form']//select[@id='country']"/>
+      <xpath name="countryOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
+             value=".//select[@id='country']//option[normalize-space()='{text}']"
+             absolute="//form[@id='profile-form']//select[@id='country']//option[normalize-space()='{text}']"/>
+      <xpath name="newsletterLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Newsletter']"
+             absolute="//form[@id='profile-form']//label[normalize-space()='Newsletter']"/>
+      <xpath name="newsletterCheckbox" type="CHECKBOX" strategy="NAME" stability="HIGH" matches="1" used="true"
+             value=".//input[@name='newsletter']"
+             absolute="//form[@id='profile-form']//input[@name='newsletter']"/>
+      <xpath name="saveProfileButton" type="BUTTON" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//button[normalize-space()='Save profile']"
+             absolute="//form[@id='profile-form']//button[normalize-space()='Save profile']"/>
+      <xpath name="helpLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Help']"
+             absolute="//form[@id='profile-form']//a[normalize-space()='Help']"/>
+    </module>
+    <module name="ContactBy" kind="GROUP" xpath="//fieldset[.//legend[normalize-space()='Contact by']]" used="1" total="4">
+      <xpath name="emailMeLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Email me']"
+             absolute="//fieldset[.//legend[normalize-space()='Contact by']]//label[normalize-space()='Email me']"/>
+      <xpath name="emailMeRadio" type="RADIO" strategy="LABEL_FOR" stability="MEDIUM" matches="1" used="false"
+             value=".//label[normalize-space()='Email me']//input"
+             absolute="//fieldset[.//legend[normalize-space()='Contact by']]//label[normalize-space()='Email me']//input"/>
+      <xpath name="callMeLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Call me']"
+             absolute="//fieldset[.//legend[normalize-space()='Contact by']]//label[normalize-space()='Call me']"/>
+      <xpath name="callMeRadio" type="RADIO" strategy="LABEL_FOR" stability="MEDIUM" matches="1" used="true"
+             value=".//label[normalize-space()='Call me']//input"
+             absolute="//fieldset[.//legend[normalize-space()='Contact by']]//label[normalize-space()='Call me']//input"/>
+    </module>
+    <module name="Toolbar" kind="SECTION" xpath="//section[@aria-label='Toolbar']" used="1" total="5">
+      <xpath name="downloadButton" type="BUTTON" strategy="ARIA_LABEL" stability="MEDIUM" matches="1" used="false"
+             value=".//button[@aria-label='Download']"
+             absolute="//section[@aria-label='Toolbar']//button[@aria-label='Download']"/>
+      <xpath name="downloadIcon" type="ICON" strategy="CLASS" stability="MEDIUM" matches="1" used="true"
+             value=".//i[contains(concat(' ', normalize-space(@class), ' '), ' fa-download ')]"
+             absolute="//section[@aria-label='Toolbar']//i[contains(concat(' ', normalize-space(@class), ' '), ' fa-download ')]"/>
+      <xpath name="settingsIcon" type="ICON" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//span[@title='Settings']"
+             absolute="//section[@aria-label='Toolbar']//span[@title='Settings']"/>
+      <xpath name="bellIcon" type="ICON" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//*[local-name()='svg'][@data-icon='bell']"
+             absolute="//section[@aria-label='Toolbar']//*[local-name()='svg'][@data-icon='bell']"/>
+      <xpath name="homeIcon" type="ICON" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//mat-icon[normalize-space()='home']"
+             absolute="//section[@aria-label='Toolbar']//mat-icon[normalize-space()='home']"/>
+    </module>
+    <module name="Positions" kind="TABLE" xpath="//table[@id='positions']" used="2" total="11">
+      <xpath name="positionsHeaderRow" type="TABLE_ROW" strategy="STRUCTURE" stability="MEDIUM" matches="1" used="false"
+             value="./thead/tr"
+             absolute="//table[@id='positions']/thead/tr"/>
+      <xpath name="instrumentHeader" type="TABLE_HEADER" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[normalize-space()='Instrument']"
+             absolute="//table[@id='positions']/thead/tr/th[normalize-space()='Instrument']"/>
+      <xpath name="quantityHeader" type="TABLE_HEADER" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[normalize-space()='Quantity']"
+             absolute="//table[@id='positions']/thead/tr/th[normalize-space()='Quantity']"/>
+      <xpath name="priceHeader" type="TABLE_HEADER" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[normalize-space()='Price']"
+             absolute="//table[@id='positions']/thead/tr/th[normalize-space()='Price']"/>
+      <xpath name="column4Header" type="TABLE_HEADER" strategy="STRUCTURE" stability="LOW" matches="1" used="false"
+             value="./thead/tr/th[4]"
+             absolute="//table[@id='positions']/thead/tr/th[4]"/>
+      <xpath name="positionsRow" type="TABLE_ROW" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
+             value="./tbody/tr[{row}]"
+             absolute="//table[@id='positions']/tbody/tr[{row}]"/>
+      <xpath name="instrumentCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
+             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Instrument']/preceding-sibling::th)+1]"
+             absolute="//table[@id='positions']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Instrument']/preceding-sibling::th)+1]"/>
+      <xpath name="quantityCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
+             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Quantity']/preceding-sibling::th)+1]"
+             absolute="//table[@id='positions']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Quantity']/preceding-sibling::th)+1]"/>
+      <xpath name="priceCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
+             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Price']/preceding-sibling::th)+1]"
+             absolute="//table[@id='positions']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Price']/preceding-sibling::th)+1]"/>
+      <xpath name="column4Cell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="LOW" matches="1" instances="3" used="false"
+             value="./tbody/tr[{row}]/td[4]"
+             absolute="//table[@id='positions']/tbody/tr[{row}]/td[4]"/>
+      <xpath name="closeButton" type="BUTTON" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
+             value="./tbody/tr[{row}]//button[normalize-space()='Close']"
+             absolute="//table[@id='positions']/tbody/tr[{row}]//button[normalize-space()='Close']"/>
+    </module>
+    <module name="Footer" kind="LANDMARK" xpath="//footer" used="0" total="1">
+      <xpath name="termsLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='Terms']"
+             absolute="//footer//a[normalize-space()='Terms']"/>
+    </module>
+    <module name="CurrencyMenu" kind="MENU" xpath="//div[@aria-label='Currency']" used="1" total="1">
+      <xpath name="currencyOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
+             value=".//mat-option[normalize-space()='{text}']"
+             absolute="//div[@aria-label='Currency']//mat-option[normalize-space()='{text}']"/>
+    </module>
+    <module name="ActionsMenu" kind="MENU" xpath="//ul[@id='actions-menu']" used="1" total="2">
+      <xpath name="exportOption" type="OPTION" strategy="TEXT" stability="LOW" matches="1" used="true"
+             value=".//li[normalize-space()='Export']"
+             absolute="//ul[@id='actions-menu']//li[normalize-space()='Export']"/>
+      <xpath name="archiveOption" type="OPTION" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//li[normalize-space()='Archive']"
+             absolute="//ul[@id='actions-menu']//li[normalize-space()='Archive']"/>
+    </module>
+    <frame name="Help" xpath="//main//iframe[@id='help-frame']" route="/frame.html" used="1" total="4">
+      <module name="Page" kind="PAGE_ROOT" xpath="//body" used="0" total="1">
+        <xpath name="needHelpHeading" type="HEADING" strategy="TEXT" stability="LOW" matches="1" used="false"
+               value=".//h2[normalize-space()='Need help?']"
+               absolute="//body//h2[normalize-space()='Need help?']"/>
+      </module>
+      <module name="FeedbackForm" kind="FORM" xpath="//form[@id='feedback']" used="1" total="3">
+        <xpath name="questionLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+               value=".//label[@for='question']"
+               absolute="//form[@id='feedback']//label[@for='question']"/>
+        <xpath name="questionInput" type="TEXT_INPUT" strategy="ID" stability="HIGH" matches="1" used="true"
+               value=".//input[@id='question']"
+               absolute="//form[@id='feedback']//input[@id='question']"/>
+        <xpath name="askButton" type="BUTTON" strategy="TEXT" stability="LOW" matches="1" used="false"
+               value=".//button[normalize-space()='Ask']"
+               absolute="//form[@id='feedback']//button[normalize-space()='Ask']"/>
+      </module>
+    </frame>
+    <omitted type="ICON" count="1"/>
+    <omitted type="PARAGRAPH" count="1"/>
+    <omitted type="SPAN" count="1"/>
+    <omitted type="DIV" count="4"/>
+  </page>
+  <page name="Login" route="/login" visits="1" used="2" total="11">
+    <module name="StrataMarkets" kind="LANDMARK" xpath="//header[.//h1[normalize-space()='Strata Markets']]" used="0" total="1">
+      <xpath name="strataMarketsHeading" type="HEADING" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//h1[normalize-space()='Strata Markets']"
+             absolute="//header[.//h1[normalize-space()='Strata Markets']]//h1[normalize-space()='Strata Markets']"/>
+    </module>
+    <module name="Main" kind="LANDMARK" xpath="//main" used="0" total="1">
+      <xpath name="deskStrataExampleLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//a[normalize-space()='desk@strata.example']"
+             absolute="//main//a[normalize-space()='desk@strata.example']"/>
+    </module>
+    <module name="LoginForm" kind="FORM" xpath="//form[@id='login-form']" used="2" total="9">
+      <xpath name="usernameLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='username']"
+             absolute="//form[@id='login-form']//label[@for='username']"/>
+      <xpath name="usernameInput" type="TEXT_INPUT" strategy="ID" stability="HIGH" matches="1" used="true"
+             value=".//input[@id='username']"
+             absolute="//form[@id='login-form']//input[@id='username']"/>
+      <xpath name="passwordLabel" type="LABEL" strategy="ATTRIBUTE" stability="MEDIUM" matches="1" used="false"
+             value=".//label[@for='password']"
+             absolute="//form[@id='login-form']//label[@for='password']"/>
+      <xpath name="passwordInput" type="PASSWORD" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//input[@id='password']"
+             absolute="//form[@id='login-form']//input[@id='password']"/>
+      <xpath name="deskLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Desk']"
+             absolute="//form[@id='login-form']//label[normalize-space()='Desk']"/>
+      <xpath name="deskInput" type="TEXT_INPUT" strategy="LABEL_FOR" stability="MEDIUM" matches="1" used="false"
+             value=".//input[@id=//label[normalize-space()='Desk']/@for]"
+             absolute="//form[@id='login-form']//input[@id=//label[normalize-space()='Desk']/@for]"/>
+      <xpath name="rememberMeLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
+             value=".//label[normalize-space()='Remember me']"
+             absolute="//form[@id='login-form']//label[normalize-space()='Remember me']"/>
+      <xpath name="rememberMeCheckbox" type="CHECKBOX" strategy="ID" stability="HIGH" matches="1" used="false"
+             value=".//input[@id='remember']"
+             absolute="//form[@id='login-form']//input[@id='remember']"/>
+      <xpath name="signInButton" type="BUTTON" strategy="TEXT" stability="LOW" matches="1" used="true"
+             value=".//button[normalize-space()='Sign in']"
+             absolute="//form[@id='login-form']//button[normalize-space()='Sign in']"/>
+    </module>
+    <omitted type="PARAGRAPH" count="1"/>
+  </page>
+</locator-coverage>
