@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Trade Blotter</title>
+  <style>td { padding: 2px 8px; }</style>
+  <script src="/blotter.js" defer></script>
+</head>
+<body>
+<nav id="main-nav" aria-label="Main">
+  <a href="/blotter/48213">Blotter</a>
+  <a href="/reports">Reports</a>
+  <a href="/login">Log out</a>
+</nav>
+<main>
+  <h1>Blotter 48213</h1>
+  <form id="blotter-filter">
+    <label for="mat-input-7">Trade date</label>
+    <input id="mat-input-7" type="date" value="2026-11-06">
+    <label for="ps-7731">Account</label>
+    <select id="ps-7731" name="account">
+      <option value="ACC-1">ACC-1 Meridian Capital</option>
+      <option value="ACC-2">ACC-2 Halvorsen Family Office</option>
+    </select>
+    <input type="text" name="counterparty" placeholder="Counterparty" value="Halvorsen">
+    <textarea name="notes">Client called about late settlement</textarea>
+    <button type="button" aria-label="Apply filters">Apply</button>
+    <button type="reset">Reset</button>
+  </form>
+
+  <div role="tablist">
+    <button role="tab" id="tab-open" aria-selected="true">Open</button>
+    <button role="tab" id="tab-settled">Settled</button>
+  </div>
+
+  <section data-testid="trade-grid">
+    <h2>Trades</h2>
+    <button type="button" aria-label="Export" onclick="void 0"><svg width="12" height="12"><path d="M0 0h12v12H0z"></path></svg> Export</button>
+    <table id="trades">
+      <thead>
+      <tr><th>Trade</th><th>Client</th><th>Notional</th><th></th></tr>
+      </thead>
+      <tbody>
+      <tr id="row-48213-1"><td>T-1001</td><td>Meridian Capital</td><td>1,250,000</td><td><button type="button">View</button></td></tr>
+      <tr id="row-48213-2"><td>T-1002</td><td>Halvorsen Family Office</td><td>310,000</td><td><button type="button">View</button></td></tr>
+      </tbody>
+    </table>
+    <p>Total notional: <output name="total">1,560,000</output></p>
+  </section>
+
+  <iframe id="chart" title="Exposure chart" src="about:blank" width="200" height="80"></iframe>
+</main>
+<noscript>JavaScript is required.</noscript>
+</body>
+</html>
