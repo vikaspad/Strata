@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Order Grid</title>
+  <!-- AG Grid Community 36.2.0, MIT (vendor/AG-GRID-LICENSE.txt), vendored so tests run offline. -->
+  <script src="/vendor/ag-grid-community-36.2.0.min.js"></script>
+</head>
+<body>
+<main>
+  <h1>Orders</h1>
+  <label for="quick-filter">Quick filter</label>
+  <input id="quick-filter" type="search" placeholder="Search orders">
+  <div id="orders-grid" data-testid="orders-grid" aria-label="Orders" style="height: 320px; width: 900px;"></div>
+</main>
+<script>
+  var rows = [
+    { orderId: 'O-48213', client: 'Meridian Capital', side: 'Buy', notional: 1250000, status: 'Open' },
+    { orderId: 'O-48214', client: 'Halvorsen Family Office', side: 'Sell', notional: 310000, status: 'Open' },
+    { orderId: 'O-48215', client: 'Oakridge Pension Fund', side: 'Buy', notional: 9800000, status: 'Filled' },
+    { orderId: 'O-48216', client: 'Meridian Capital', side: 'Sell', notional: 45000, status: 'Open' }
+  ];
+  function cancelRenderer(params) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = 'Cancel';
+    button.addEventListener('click', function () { params.node.setDataValue('status', 'Cancelled'); });
+    return button;
+  }
+  window.ordersGrid = agGrid.createGrid(document.getElementById('orders-grid'), {
+    theme: agGrid.themeQuartz,
+    rowData: rows,
+    getRowId: function (p) { return p.data.orderId; },
+    rowSelection: { mode: 'multiRow' },
+    columnDefs: [
+      { field: 'orderId', headerName: 'Order', sortable: true },
+      { field: 'client', headerName: 'Client' },
+      { field: 'side', headerName: 'Side' },
+      { field: 'notional', headerName: 'Notional', type: 'numericColumn' },
+      { field: 'status', headerName: 'Status' },
+      { colId: 'actions', headerName: 'Actions', cellRenderer: cancelRenderer, sortable: false }
+    ]
+  });
+  document.getElementById('quick-filter').addEventListener('input', function (e) {
+    window.ordersGrid.setGridOption('quickFilterText', e.target.value);
+  });
+</script>
+</body>
+</html>
