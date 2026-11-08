@@ -12,6 +12,8 @@ data class Template(val entry: XpathEntry, val instances: List<Element>)
  * Templates for repeated structures (CLAUDE.md §5.9): table rows, cells and row actions (`{row}`), list items (`{n}`)
  * and dropdown options (`{text}`). A template is emitted only if, for every instance in the snapshot, substituting
  * the placeholder selects exactly that instance, both within the module and from the document root.
+ *
+ * The named placeholders are only used while building and verifying; emitted entries carry `%s` ([emit]).
  */
 class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
 
@@ -117,7 +119,8 @@ class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
         val doc = module.ownerDocument() ?: return null
         if (!sameElements(verifier.select(doc, absolute.replace(TEXT_PREDICATE, "")), options)) return null
         return Template(
-            XpathEntry(name, ElementType.OPTION, value, absolute, Strategy.TEXT_TEMPLATE, matches = 1, instances = options.size),
+            XpathEntry(name, ElementType.OPTION, emit(value, TEXT), emit(absolute, TEXT), Strategy.TEXT_TEMPLATE,
+                matches = 1, instances = options.size),
             options,
         )
     }
@@ -150,7 +153,8 @@ class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
             if (verifier.select(doc, absolute.replace(placeholder, "$i")) != want) return null
         }
         return Template(
-            XpathEntry(name, type, value, absolute, Strategy.ROW_TEMPLATE, matches = 1, instances = expected.size),
+            XpathEntry(name, type, emit(value, placeholder), emit(absolute, placeholder), Strategy.ROW_TEMPLATE,
+                matches = 1, instances = expected.size),
             expected.values.toList(),
         )
     }
@@ -175,7 +179,11 @@ class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
         a.size == b.size && a.zip(b).all { (x, y) -> x === y }
 
     companion object {
-        const val TEXT_PLACEHOLDER: String = "[normalize-space()='{text}']"
+        private const val TEXT = "{text}"
+        const val TEXT_PLACEHOLDER: String = "[normalize-space()='$TEXT']"
+
+        /** The emitted form of a template: literal `%` escaped as `%%`, then [placeholder] replaced by `%s`. */
+        fun emit(xpath: String, placeholder: String): String = xpath.replace("%", "%%").replace(placeholder, "%s")
         private val TEXT_PREDICATE = Regex(Regex.escape(TEXT_PLACEHOLDER))
     }
 }

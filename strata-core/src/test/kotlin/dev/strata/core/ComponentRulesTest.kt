@@ -35,11 +35,11 @@ class ComponentRulesTest {
         assertEquals(Strategy.ROW_TEMPLATE, qty.strategy)
         assertEquals(Stability.MEDIUM, qty.stability)
         assertEquals(2, qty.instances)
-        assertEquals("//table[@id='t']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Qty']/preceding-sibling::th)+1]", qty.absolute)
+        assertEquals("//table[@id='t']/tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Qty']/preceding-sibling::th)+1]", qty.absolute)
         assertEquals(Stability.LOW, a.entry("column3Cell").stability)
-        assertEquals("./tbody/tr[{row}]//button[normalize-space()='Close']", a.entry("closeButton").value)
+        assertEquals("./tbody/tr[%s]//button[normalize-space()='Close']", a.entry("closeButton").value)
         assertEquals(ElementType.TABLE_HEADER, a.entry("nameHeader").type)
-        assertEquals("./tbody/tr[{row}]", a.entry("tRow").value)
+        assertEquals("./tbody/tr[%s]", a.entry("tRow").value)
     }
 
     @Test
@@ -61,12 +61,12 @@ class ComponentRulesTest {
                 "<select name='ccy'><option>···</option><option>···</option></select>" +
                 "<div role='listbox' aria-label='Side'><div role='option'>···</div><div role='option'>···</div></div>",
         )
-        assertEquals(".//ul[@id='w']/li[{n}]", a.entry("wItem").value)
+        assertEquals(".//ul[@id='w']/li[%s]", a.entry("wItem").value)
         assertEquals(2, a.entry("wItem").instances)
-        assertEquals(".//select[@name='ccy']//option[normalize-space()='{text}']", a.entry("ccyOption").value)
+        assertEquals(".//select[@name='ccy']//option[normalize-space()='%s']", a.entry("ccyOption").value)
         assertEquals(Strategy.TEXT_TEMPLATE, a.entry("ccyOption").strategy)
         val custom = a.entries().single { it.type == ElementType.OPTION && it.value.contains("@role='option'") }
-        assertEquals("//div[@aria-label='Side']//*[@role='option'][normalize-space()='{text}']", custom.absolute)
+        assertEquals("//div[@aria-label='Side']//*[@role='option'][normalize-space()='%s']", custom.absolute)
     }
 
     @Test
@@ -125,13 +125,13 @@ class ComponentRulesTest {
         assertEquals(".//table[caption[normalize-space()='Positions']]", a.entry("positionsTable").value)
         assertEquals(ElementType.PASSWORD, a.entry("pwInput").type)
         // The caption also makes the table a module, so its templates are relative to it.
-        assertEquals("//table[.//caption[normalize-space()='Positions']]/tbody/tr[{row}]", a.entry("positionsRow").absolute)
+        assertEquals("//table[.//caption[normalize-space()='Positions']]/tbody/tr[%s]", a.entry("positionsRow").absolute)
     }
 
     @Test
     fun tableWithoutModuleXpathHangsTemplatesOffItsEntry() {
         val a = analyze("<table><tbody><tr><td>···</td></tr></tbody></table><table><tbody><tr><td>···</td></tr></tbody></table>")
         val rows = a.entries().filter { it.type == ElementType.TABLE_ROW }.map { it.value }
-        assertEquals(listOf("(.//table)[1]/tbody/tr[{row}]", "(.//table)[2]/tbody/tr[{row}]"), rows)
+        assertEquals(listOf("(.//table)[1]/tbody/tr[%s]", "(.//table)[2]/tbody/tr[%s]"), rows)
     }
 }

@@ -52,18 +52,18 @@ class AgGridTest {
         val byName = entries.associateBy { it.name }
         assertEquals(".//div[@role='columnheader'][@col-id='notional']", byName.getValue("notionalHeader").value)
         assertEquals(Strategy.ATTRIBUTE, byName.getValue("notionalHeader").strategy)
-        assertEquals(".//div[@role='row'][@row-index={row}-1]", byName.getValue("ordersRow").value)
+        assertEquals(".//div[@role='row'][@row-index=%s-1]", byName.getValue("ordersRow").value)
         assertEquals(3, byName.getValue("ordersRow").instances)
-        assertEquals(".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='notional']",
+        assertEquals(".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='notional']",
             byName.getValue("notionalCell").value)
-        assertEquals(".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']",
+        assertEquals(".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']",
             byName.getValue("cancelButton").value)
         // Names are deduplicated when visits merge; per snapshot both checkboxes are `selectionCheckbox`.
         val checkboxes = entries.filter { it.name == "selectionCheckbox" }.map { it.value }
         assertEquals(
             listOf(
                 ".//div[@role='columnheader'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']",
-                ".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']",
+                ".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']",
             ),
             checkboxes,
         )

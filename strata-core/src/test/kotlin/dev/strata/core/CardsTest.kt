@@ -29,7 +29,7 @@ class CardsTest {
     @Test
     fun repeatedCardsBecomeOneTemplatePerControl() {
         val entries = analyze(products).modules.flatMap { it.second }
-        val cards = ".//div[${hasClass("features")}]/div[${hasClass("col-sm-4")}][{n}]"
+        val cards = ".//div[${hasClass("features")}]/div[${hasClass("col-sm-4")}][%s]"
         val byValue = entries.associateBy { it.value }
         assertEquals("productCard", byValue.getValue(cards).name)
         assertEquals(3, byValue.getValue(cards).instances)
@@ -49,7 +49,7 @@ class CardsTest {
         val a = analyze(products) { doc -> setOf(doc.select("a.add-to-cart")[2]) }
         val used = a.modules.flatMap { it.second }.filter { it.used }
         assertEquals(listOf("addToCartLink"), used.map { it.name })
-        assertTrue(used.single().value.contains("{n}"))
+        assertTrue(used.single().value.contains("%s"))
     }
 
     @Test
@@ -68,8 +68,18 @@ class CardsTest {
         val carousel = "<div class='carousel'><div class='item active'>${card(1, "x")}${card(2, "y")}</div>${slide(3, 4)}</div>"
         val entries = analyze(carousel).modules.flatMap { it.second }
         val viewProduct = entries.single { it.name == "viewProductLink" }
-        assertEquals("(.//div[${hasClass("item")}]/div[${hasClass("col-sm-4")}])[{n}]//a[normalize-space()='View Product']", viewProduct.value)
+        assertEquals("(.//div[${hasClass("item")}]/div[${hasClass("col-sm-4")}])[%s]//a[normalize-space()='View Product']", viewProduct.value)
         assertEquals(4, viewProduct.instances)
+    }
+
+    @Test
+    fun templatesUsePercentSAndEscapeLiteralPercent() {
+        val table = "<table id='moves'><thead><tr><th>Chg %</th></tr></thead>" +
+            "<tbody><tr><td>···</td></tr><tr><td>···</td></tr></tbody></table>"
+        val cell = analyze(table).modules.flatMap { it.second }.single { it.type == ElementType.TABLE_CELL }
+        assertEquals("./tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Chg %%']/preceding-sibling::th)+1]", cell.value)
+        assertEquals("//table[@id='moves']/tbody/tr[2]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Chg %']/preceding-sibling::th)+1]",
+            cell.absoluteFor(2))
     }
 
     @Test

@@ -82,10 +82,17 @@ data class XpathEntry(
     val matches: Int,
     val stability: Stability = Stability.of(strategy, value),
     val used: Boolean = false,
-    /** How many instances a template verified against (`{row}`, `{n}`, `{text}`); 1 for plain entries. */
+    /** How many instances a template verified against; 1 for plain entries. */
     val instances: Int = 1,
 ) {
-    val isTemplate: Boolean get() = value.contains('{')
+    /**
+     * A template's value and absolute hold one `%s` for the dynamic part: the 1-based row, item or card number, or
+     * the option text (§5.9). A literal `%` is written `%%`, so `String.format(absolute, x)` is always safe.
+     */
+    val isTemplate: Boolean get() = strategy == Strategy.ROW_TEMPLATE || strategy == Strategy.TEXT_TEMPLATE
+
+    /** [absolute] with the dynamic part filled in; a plain entry's absolute as is. */
+    fun absoluteFor(arg: Any): String = if (isTemplate) String.format(java.util.Locale.ROOT, absolute, arg) else absolute
 }
 
 enum class ElementType {

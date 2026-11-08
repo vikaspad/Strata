@@ -18,7 +18,7 @@ object DefaultCoverageXmlWriter : CoverageXmlWriter {
         val pages = run.pages.sortedBy { it.routeKey }
         val all = pages.flatMap { p -> p.modules + p.frames.flatMap { it.modules } }
         append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        append("<locator-coverage schema=\"2\" run=\"${esc(run.runId)}\" generated=\"${esc(run.generatedAt)}\"${counts(all)}>\n")
+        append("<locator-coverage schema=\"3\" run=\"${esc(run.runId)}\" generated=\"${esc(run.generatedAt)}\"${counts(all)}>\n")
         for (page in pages) {
             val pageModules = page.modules + page.frames.flatMap { it.modules }
             append("  <page name=\"${esc(page.name)}\" route=\"${esc(page.routeKey)}\" visits=\"${page.visits}\"${counts(pageModules)}>\n")

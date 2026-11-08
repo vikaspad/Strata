@@ -65,12 +65,12 @@ class GoldenXmlTest {
                     assertEquals(1, x.matches)
                     assertTrue(x.value.startsWith("./") || x.value.startsWith("(.//"), x.value)
                     when {
-                        x.value.contains("{text}") -> assertTrue(
-                            docs.any { verifier.count(it, x.absolute.replace(TemplateBuilder.TEXT_PLACEHOLDER, "")) == x.instances },
+                        x.strategy == Strategy.TEXT_TEMPLATE -> assertTrue(
+                            docs.any { verifier.count(it, x.absolute.replace("[normalize-space()='%s']", "")) == x.instances },
                             "text template: ${x.absolute}",
                         )
                         x.isTemplate -> for (i in 1..x.instances) {
-                            val concrete = x.absolute.replace("{row}", "$i").replace("{n}", "$i")
+                            val concrete = x.absoluteFor(i)
                             assertTrue(docs.any { verifier.count(it, concrete) == 1 }, "template instance $i: $concrete")
                         }
                         else -> assertTrue(docs.any { verifier.count(it, x.absolute) == 1 }, "does not re-verify: ${x.absolute}")
@@ -127,7 +127,7 @@ class GoldenXmlTest {
         val run = StrataGenerator.generate(copyRun(tmp))
         val xml = DefaultCoverageXmlWriter.render(run)
         val all = run.pages.flatMap { p -> (p.modules + p.frames.flatMap { it.modules }).flatMap { it.elements } }
-        assertTrue(xml.contains("schema=\"2\""))
+        assertTrue(xml.contains("schema=\"3\""))
         assertTrue(xml.contains("used=\"${all.count { it.used }}\" total=\"${all.size}\">"))
         assertEquals(emptyList(), run.unmatched)
     }
