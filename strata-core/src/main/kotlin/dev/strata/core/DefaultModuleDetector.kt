@@ -24,6 +24,7 @@ object DefaultModuleDetector : ModuleDetector {
         val tag = el.normalName()
         val role = el.attr("role").lowercase()
         return when {
+            AgGrid.isHost(el) -> ModuleKind.GRID
             tag == "form" -> ModuleKind.FORM
             tag == "nav" || role == "navigation" -> ModuleKind.NAV
             tag == "table" -> ModuleKind.TABLE
@@ -78,6 +79,7 @@ class ModuleXpaths(private val verifier: JsoupXpathVerifier) {
         if (el.hasClass("dropdown-menu")) out += "//$tag[${hasClass("dropdown-menu")}]" to "dropdown menu"
         // Landmarks are normally one per page; a second one makes this fail verification and fall through.
         if (tag in SINGLETON_TAGS) out += "//$tag" to tag
+        if (AgGrid.isHost(el)) out += AgGrid.fallbackModuleXpath() to "grid"
         return out
     }
 
@@ -96,6 +98,7 @@ class ModuleXpaths(private val verifier: JsoupXpathVerifier) {
             ModuleKind.FORM -> Names.withSuffix(base, "Form")
             ModuleKind.DIALOG -> Names.withSuffix(base, "Dialog")
             ModuleKind.MENU -> Names.withSuffix(base, "Menu")
+            ModuleKind.GRID -> Names.withSuffix(base, "Grid")
             else -> base
         }
     }

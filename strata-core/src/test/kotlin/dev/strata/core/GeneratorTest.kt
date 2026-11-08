@@ -1,6 +1,7 @@
 package dev.strata.core
 
 import dev.strata.core.model.ElementType
+import dev.strata.core.model.ModuleKind
 import dev.strata.core.model.SnapshotRecord
 import dev.strata.core.model.Stability
 import dev.strata.core.model.Strategy
@@ -83,8 +84,8 @@ class GoldenXmlTest {
     @Test
     fun pagesAreSortedByRouteAndNamedByUniqueTitle(@TempDir tmp: Path) {
         val run = StrataGenerator.generate(copyRun(tmp))
-        assertEquals(listOf("/blotter/{id}", "/components", "/login"), run.pages.map { it.routeKey })
-        assertEquals(listOf("TradeBlotter", "Components", "Login"), run.pages.map { it.name })
+        assertEquals(listOf("/blotter/{id}", "/components", "/grid", "/login"), run.pages.map { it.routeKey })
+        assertEquals(listOf("TradeBlotter", "Components", "OrderGrid", "Login"), run.pages.map { it.name })
         assertEquals("20261107-120000", run.runId)
     }
 
@@ -104,6 +105,21 @@ class GoldenXmlTest {
         assertTrue(entries.single { it.name == "countryOption" }.let { it.used && it.instances == 3 })
         assertTrue(entries.single { it.name == "currencyOption" }.let { it.used && it.instances == 3 })
         assertTrue(entries.none { it.strategy == Strategy.LABEL_FOR && it.value.contains("following::") })
+    }
+
+    /** §5.12 against a real AG Grid 36 snapshot. */
+    @Test
+    fun agGridIsModelledByColumn(@TempDir tmp: Path) {
+        val page = StrataGenerator.generate(copyRun(tmp)).pages.single { it.routeKey == "/grid" }
+        val grid = page.modules.single { it.kind == ModuleKind.GRID }
+        assertEquals("//div[@data-testid='orders-grid']", grid.xpath)
+        val names = grid.elements.associateBy { it.name }
+        assertEquals(setOf("orderHeader", "clientHeader", "sideHeader", "notionalHeader", "statusHeader", "actionsHeader"),
+            names.keys.filter { it.endsWith("Header") && it != "selectionHeader" }.toSet())
+        assertTrue(names.getValue("cancelButton").used)
+        assertEquals(4, names.getValue("notionalCell").instances)
+        assertTrue(grid.elements.none { it.stability == Stability.LOW })
+        assertEquals(emptyList(), page.omitted)
     }
 
     @Test
@@ -219,7 +235,7 @@ class RedactionContractTest {
 
     @Test
     fun snapshotsExist() {
-        assertEquals(10, snapshots.size)
+        assertEquals(11, snapshots.size)
     }
 
     /** Only `···`, or an action label repeated across >= 2 rows (the §4.4 repeated-label exception). */
@@ -258,6 +274,7 @@ class RedactionContractTest {
             assertTrue(doc.select("textarea").all { it.text().isEmpty() }, "textarea text in $file")
             assertTrue(doc.select("script, style, noscript").isEmpty(), "script/style in $file")
             assertTrue(doc.select("[style], [onclick]").isEmpty(), "style/on* in $file")
+            assertTrue(doc.select("[row-id], [row-business-key], [role=gridcell][title], td[title]").isEmpty(), "row keys in $file")
         }
     }
 }

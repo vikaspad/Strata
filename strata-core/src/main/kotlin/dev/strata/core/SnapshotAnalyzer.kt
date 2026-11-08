@@ -57,6 +57,7 @@ class SnapshotAnalyzer(private val log: (String) -> Unit = {}) {
         for (el in body.select("*").drop(1)) {
             val type = Interactables.typeOf(el) ?: continue
             if (Interactables.isHidden(el) || insideSvg(el) || handledByTemplate(el, type)) continue
+            if (AgGrid.handledByAdapter(el)) continue
             // A container div/span/p is already addressed by its module xpath.
             if (resolved.containsKey(el) && Interactables.isContentTag(el)) continue
             val module = moduleOf(el)
@@ -76,6 +77,18 @@ class SnapshotAnalyzer(private val log: (String) -> Unit = {}) {
             } else {
                 add(module, entry, listOf(el))
             }
+        }
+
+        // AG Grid (§5.12): headers, rows, cells and cell controls of each grid module, plus a TABLE entry outside it.
+        val gridTemplates = AgGridTemplates(verifier)
+        for (host in AgGrid.hosts(doc)) {
+            val gridModule = resolved[host]
+            if (gridModule == null || gridModule.kind != dev.strata.core.model.ModuleKind.GRID) {
+                log("AG Grid ${outline(host)} has no unique module xpath; its cells get no templates")
+                continue
+            }
+            gridTemplates.tableEntry(generator, host, moduleOf(host))?.let { add(moduleOf(host), it, listOf(host)) }
+            for (t in gridTemplates.build(host, gridModule.xpath)) add(host, t.entry, t.instances)
         }
 
         // Structures whose parts are templates.

@@ -70,7 +70,7 @@ data class ModuleModel(
     val elements: List<XpathEntry>,
 )
 
-enum class ModuleKind { FORM, NAV, TABLE, DIALOG, SECTION, LANDMARK, GROUP, MENU, ANCHORED, PAGE_ROOT }
+enum class ModuleKind { FORM, NAV, TABLE, GRID, DIALOG, SECTION, LANDMARK, GROUP, MENU, ANCHORED, PAGE_ROOT }
 
 data class XpathEntry(
     val name: String,

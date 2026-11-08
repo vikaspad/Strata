@@ -131,7 +131,7 @@ class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
             ElementType.LIST_ITEM, name)
     }
 
-    private fun indexed(
+    internal fun indexed(
         module: Element,
         moduleAbsolute: String,
         value: String,
@@ -155,7 +155,7 @@ class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
         )
     }
 
-    private fun single(
+    internal fun single(
         module: Element,
         moduleAbsolute: String,
         value: String,

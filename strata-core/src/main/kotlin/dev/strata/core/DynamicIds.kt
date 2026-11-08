@@ -12,6 +12,7 @@ object DynamicIds {
         Regex("^:r[0-9a-z]+:$"),
         Regex("^ext-gen\\d+"),
         Regex("^ui-id-\\d+"),
+        Regex("^ag-\\d+-"),
     )
 
     fun isDynamic(id: String): Boolean = patterns.any { it.containsMatchIn(id) }
