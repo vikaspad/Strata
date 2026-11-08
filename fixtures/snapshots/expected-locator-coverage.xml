@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<locator-coverage schema="2" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="29" total="141">
+<locator-coverage schema="3" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="29" total="141">
   <page name="TradeBlotter" route="/blotter/{id}" visits="3" used="3" total="45">
     <module name="MainNav" kind="NAV" xpath="//nav[@id='main-nav']" used="0" total="3">
       <xpath name="blotterLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
@@ -34,8 +34,8 @@
              value=".//select[@name='account']"
              absolute="//form[@id='blotter-filter']//select[@name='account']"/>
       <xpath name="accountOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value=".//select[@name='account']//option[normalize-space()='{text}']"
-             absolute="//form[@id='blotter-filter']//select[@name='account']//option[normalize-space()='{text}']"/>
+             value=".//select[@name='account']//option[normalize-space()='%s']"
+             absolute="//form[@id='blotter-filter']//select[@name='account']//option[normalize-space()='%s']"/>
       <xpath name="counterpartyInput" type="TEXT_INPUT" strategy="NAME" stability="HIGH" matches="1" used="false"
              value=".//input[@name='counterparty']"
              absolute="//form[@id='blotter-filter']//input[@name='counterparty']"/>
@@ -88,26 +88,26 @@
              value="./thead/tr/th[4]"
              absolute="//table[@id='trades']/thead/tr/th[4]"/>
       <xpath name="tradesRow" type="TABLE_ROW" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value="./tbody/tr[{row}]"
-             absolute="//table[@id='trades']/tbody/tr[{row}]"/>
+             value="./tbody/tr[%s]"
+             absolute="//table[@id='trades']/tbody/tr[%s]"/>
       <xpath name="tradeCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Trade']/preceding-sibling::th)+1]"
-             absolute="//table[@id='trades']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Trade']/preceding-sibling::th)+1]"/>
+             value="./tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Trade']/preceding-sibling::th)+1]"
+             absolute="//table[@id='trades']/tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Trade']/preceding-sibling::th)+1]"/>
       <xpath name="clientCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Client']/preceding-sibling::th)+1]"
-             absolute="//table[@id='trades']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Client']/preceding-sibling::th)+1]"/>
+             value="./tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Client']/preceding-sibling::th)+1]"
+             absolute="//table[@id='trades']/tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Client']/preceding-sibling::th)+1]"/>
       <xpath name="notionalCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Notional']/preceding-sibling::th)+1]"
-             absolute="//table[@id='trades']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Notional']/preceding-sibling::th)+1]"/>
+             value="./tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Notional']/preceding-sibling::th)+1]"
+             absolute="//table[@id='trades']/tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Notional']/preceding-sibling::th)+1]"/>
       <xpath name="column4Cell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="LOW" matches="1" instances="2" used="false"
-             value="./tbody/tr[{row}]/td[4]"
-             absolute="//table[@id='trades']/tbody/tr[{row}]/td[4]"/>
+             value="./tbody/tr[%s]/td[4]"
+             absolute="//table[@id='trades']/tbody/tr[%s]/td[4]"/>
       <xpath name="viewButton" type="BUTTON" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value="./tbody/tr[{row}]//button[normalize-space()='View']"
-             absolute="//table[@id='trades']/tbody/tr[{row}]//button[normalize-space()='View']"/>
+             value="./tbody/tr[%s]//button[normalize-space()='View']"
+             absolute="//table[@id='trades']/tbody/tr[%s]//button[normalize-space()='View']"/>
       <xpath name="column4Button" type="BUTTON" strategy="ROW_TEMPLATE" stability="LOW" matches="1" instances="1" used="false"
-             value="./tbody/tr[{row}]/td[4]/descendant::button[1]"
-             absolute="//table[@id='trades']/tbody/tr[{row}]/td[4]/descendant::button[1]"/>
+             value="./tbody/tr[%s]/td[4]/descendant::button[1]"
+             absolute="//table[@id='trades']/tbody/tr[%s]/td[4]/descendant::button[1]"/>
     </module>
     <module name="Page" kind="PAGE_ROOT" xpath="//body" used="1" total="1">
       <xpath name="exportTradesDiv" type="DIV" strategy="ID" stability="HIGH" matches="1" used="true"
@@ -125,8 +125,8 @@
              value=".//select[@id='export-format']"
              absolute="//div[@id='export-dialog']//select[@id='export-format']"/>
       <xpath name="formatOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value=".//select[@id='export-format']//option[normalize-space()='{text}']"
-             absolute="//div[@id='export-dialog']//select[@id='export-format']//option[normalize-space()='{text}']"/>
+             value=".//select[@id='export-format']//option[normalize-space()='%s']"
+             absolute="//div[@id='export-dialog']//select[@id='export-format']//option[normalize-space()='%s']"/>
       <xpath name="includeCancelledLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
              value=".//label[normalize-space()='Include cancelled']"
              absolute="//div[@id='export-dialog']//label[normalize-space()='Include cancelled']"/>
@@ -170,8 +170,8 @@
              value=".//*[@data-testid='primary-links']"
              absolute="//nav[@aria-label='Primary']//*[@data-testid='primary-links']"/>
       <xpath name="primaryLinksItem" type="LIST_ITEM" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
-             value=".//*[@data-testid='primary-links']/li[{n}]"
-             absolute="//nav[@aria-label='Primary']//*[@data-testid='primary-links']/li[{n}]"/>
+             value=".//*[@data-testid='primary-links']/li[%s]"
+             absolute="//nav[@aria-label='Primary']//*[@data-testid='primary-links']/li[%s]"/>
     </module>
     <module name="PrimaryLinks" kind="ANCHORED" xpath="//ul[@data-testid='primary-links']" used="0" total="3">
       <xpath name="loginLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
@@ -207,8 +207,8 @@
              value=".//ol[@aria-label='Recent trades']"
              absolute="//main//ol[@aria-label='Recent trades']"/>
       <xpath name="recentTradesItem" type="LIST_ITEM" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value=".//ol[@aria-label='Recent trades']/li[{n}]"
-             absolute="//main//ol[@aria-label='Recent trades']/li[{n}]"/>
+             value=".//ol[@aria-label='Recent trades']/li[%s]"
+             absolute="//main//ol[@aria-label='Recent trades']/li[%s]"/>
       <xpath name="helpFrame" type="IFRAME" strategy="ID" stability="HIGH" matches="1" used="true"
              value=".//iframe[@id='help-frame']"
              absolute="//main//iframe[@id='help-frame']"/>
@@ -219,8 +219,8 @@
              value=".//ul[@id='actions-menu']"
              absolute="//main//ul[@id='actions-menu']"/>
       <xpath name="actionsItem" type="LIST_ITEM" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
-             value=".//ul[@id='actions-menu']/li[{n}]"
-             absolute="//main//ul[@id='actions-menu']/li[{n}]"/>
+             value=".//ul[@id='actions-menu']/li[%s]"
+             absolute="//main//ul[@id='actions-menu']/li[%s]"/>
       <xpath name="span" type="SPAN" strategy="POSITIONAL" stability="LOW" matches="1" used="true"
              value="(.//span)[3]"
              absolute="(//main//span)[3]"/>
@@ -257,8 +257,8 @@
              value=".//select[@id='country']"
              absolute="//form[@id='profile-form']//select[@id='country']"/>
       <xpath name="countryOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
-             value=".//select[@id='country']//option[normalize-space()='{text}']"
-             absolute="//form[@id='profile-form']//select[@id='country']//option[normalize-space()='{text}']"/>
+             value=".//select[@id='country']//option[normalize-space()='%s']"
+             absolute="//form[@id='profile-form']//select[@id='country']//option[normalize-space()='%s']"/>
       <xpath name="newsletterLabel" type="LABEL" strategy="TEXT" stability="LOW" matches="1" used="false"
              value=".//label[normalize-space()='Newsletter']"
              absolute="//form[@id='profile-form']//label[normalize-space()='Newsletter']"/>
@@ -320,23 +320,23 @@
              value="./thead/tr/th[4]"
              absolute="//table[@id='positions']/thead/tr/th[4]"/>
       <xpath name="positionsRow" type="TABLE_ROW" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
-             value="./tbody/tr[{row}]"
-             absolute="//table[@id='positions']/tbody/tr[{row}]"/>
+             value="./tbody/tr[%s]"
+             absolute="//table[@id='positions']/tbody/tr[%s]"/>
       <xpath name="instrumentCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
-             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Instrument']/preceding-sibling::th)+1]"
-             absolute="//table[@id='positions']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Instrument']/preceding-sibling::th)+1]"/>
+             value="./tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Instrument']/preceding-sibling::th)+1]"
+             absolute="//table[@id='positions']/tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Instrument']/preceding-sibling::th)+1]"/>
       <xpath name="quantityCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
-             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Quantity']/preceding-sibling::th)+1]"
-             absolute="//table[@id='positions']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Quantity']/preceding-sibling::th)+1]"/>
+             value="./tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Quantity']/preceding-sibling::th)+1]"
+             absolute="//table[@id='positions']/tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Quantity']/preceding-sibling::th)+1]"/>
       <xpath name="priceCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
-             value="./tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Price']/preceding-sibling::th)+1]"
-             absolute="//table[@id='positions']/tbody/tr[{row}]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Price']/preceding-sibling::th)+1]"/>
+             value="./tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Price']/preceding-sibling::th)+1]"
+             absolute="//table[@id='positions']/tbody/tr[%s]/td[count(ancestor::table[1]/thead/tr/th[normalize-space()='Price']/preceding-sibling::th)+1]"/>
       <xpath name="column4Cell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="LOW" matches="1" instances="3" used="false"
-             value="./tbody/tr[{row}]/td[4]"
-             absolute="//table[@id='positions']/tbody/tr[{row}]/td[4]"/>
+             value="./tbody/tr[%s]/td[4]"
+             absolute="//table[@id='positions']/tbody/tr[%s]/td[4]"/>
       <xpath name="closeButton" type="BUTTON" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="false"
-             value="./tbody/tr[{row}]//button[normalize-space()='Close']"
-             absolute="//table[@id='positions']/tbody/tr[{row}]//button[normalize-space()='Close']"/>
+             value="./tbody/tr[%s]//button[normalize-space()='Close']"
+             absolute="//table[@id='positions']/tbody/tr[%s]//button[normalize-space()='Close']"/>
     </module>
     <module name="Footer" kind="LANDMARK" xpath="//footer" used="0" total="1">
       <xpath name="termsLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
@@ -345,8 +345,8 @@
     </module>
     <module name="CurrencyMenu" kind="MENU" xpath="//div[@aria-label='Currency']" used="1" total="1">
       <xpath name="currencyOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
-             value=".//mat-option[normalize-space()='{text}']"
-             absolute="//div[@aria-label='Currency']//mat-option[normalize-space()='{text}']"/>
+             value=".//mat-option[normalize-space()='%s']"
+             absolute="//div[@aria-label='Currency']//mat-option[normalize-space()='%s']"/>
     </module>
     <module name="ActionsMenu" kind="MENU" xpath="//ul[@id='actions-menu']" used="1" total="2">
       <xpath name="exportOption" type="OPTION" strategy="TEXT" stability="LOW" matches="1" used="true"
@@ -420,35 +420,35 @@
              value=".//div[@role='columnheader'][@col-id='actions']"
              absolute="//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='actions']"/>
       <xpath name="ordersRow" type="TABLE_ROW" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
-             value=".//div[@role='row'][@row-index={row}-1]"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]"/>
+             value=".//div[@role='row'][@row-index=%s-1]"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]"/>
       <xpath name="selectionCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']"/>
       <xpath name="selectionCheckbox2" type="CHECKBOX" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='ag-Grid-SelectionColumn']//input[@type='checkbox']"/>
       <xpath name="orderCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='orderId']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='orderId']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='orderId']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='orderId']"/>
       <xpath name="clientCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='client']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='client']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='client']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='client']"/>
       <xpath name="sideCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='side']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='side']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='side']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='side']"/>
       <xpath name="notionalCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='notional']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='notional']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='notional']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='notional']"/>
       <xpath name="statusCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='status']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='status']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='status']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='status']"/>
       <xpath name="actionsCell" type="TABLE_CELL" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="false"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='actions']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='actions']"/>
       <xpath name="cancelButton" type="BUTTON" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="4" used="true"
-             value=".//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']"
-             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index={row}-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']"/>
+             value=".//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']"
+             absolute="//div[@data-testid='orders-grid']//div[@role='row'][@row-index=%s-1]//div[@role='gridcell'][@col-id='actions']//button[normalize-space()='Cancel']"/>
     </module>
   </page>
   <page name="Login" route="/login" visits="1" used="2" total="11">
