@@ -1,6 +1,6 @@
 # CLAUDE.md — Strata: Run with Locator Coverage
 
-**Version:** v0.2.0 · **Milestone:** M2 · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
+**Version:** v0.2.1 · **Milestone:** M2 · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
 
 > Assumptions:
 > - A1. The target framework is on **Selenium 4.x**. Every command funnels through `RemoteWebDriver.execute(CommandPayload)`.
@@ -22,6 +22,7 @@ Everything M1 delivers (right-click a test → **Run with Locator Coverage** →
 - **Quality fixes from M1.** Table actions are row templates, labels with dynamic ids use `@for`, and there are more module kinds.
 - **Same-origin iframes.** Frame content is captured with its page and modelled as `<frame>` scopes.
 - **Overhead.** A cheap probe skips the settle wait when nothing changed, the settle window is configurable, and the overhead budget is per command (§10).
+- **AG Grid.** An adapter models AG Grid by column (§5.12): a GRID module, `col-id` headers, `row-index` row templates, and per-column cell and control templates.
 
 ### Decisions (2026-11-07)
 - D2: text of paragraphs, spans, divs, table cells and list items **stays redacted**. They are located by attributes and structure only.
@@ -34,7 +35,8 @@ Everything M1 delivers (right-click a test → **Run with Locator Coverage** →
 - `WebDriverListener` fallback, Playwright, Selenium 3
 - Shadow DOM and cross-origin iframe content (logged as `skipped`), nested frames (`iframe#x:nested`)
 - AI/LLM naming or any other AI call
-- *Should* items that are not built yet: the AG Grid adapter and Gradle-delegated runs (see `M2-SCOPE.md`)
+- The *Should* item not built yet: Gradle-delegated runs (see `M2-SCOPE.md`)
+- Other grid libraries, and generic ARIA grids without `tbody` (only AG Grid has an adapter)
 
 ---
 
@@ -115,7 +117,7 @@ data class PageModel(val name: String, val routeKey: String, val visits: Int, va
 data class FrameModel(val name: String, val xpath: String /* the <iframe> in its page */, val routeKey: String,
                       val modules: List<ModuleModel>)
 data class ModuleModel(val name: String, val kind: ModuleKind, val xpath: String, val elements: List<XpathEntry>)
-enum class ModuleKind { FORM, NAV, TABLE, DIALOG, SECTION, LANDMARK, GROUP, MENU, ANCHORED, PAGE_ROOT }
+enum class ModuleKind { FORM, NAV, TABLE, GRID, DIALOG, SECTION, LANDMARK, GROUP, MENU, ANCHORED, PAGE_ROOT }
 
 data class XpathEntry(
     val name: String,
@@ -196,6 +198,7 @@ A JS function walks a **clone** of each document (top, and each same-origin fram
   5. anything else → `···`.
 - Kept text is truncated to 60 chars.
 - Remove the `value` attribute everywhere, the `style` attribute, and every `on*` attribute. Clear `textarea` text.
+- Remove `row-id` and `row-business-key` (AG Grid `getRowId` keys are the application's own data), and `title` inside `td, [role=gridcell]`.
 - Frames:
   - same-origin frames are returned as separate documents;
   - `about:blank` frames are skipped as `iframe#x:blank`;
@@ -248,13 +251,14 @@ The routeKey for `/blotter/48213?x=1` is `/blotter/{id}`, and the file-safe form
 
 ### 5.3 Modules
 - **Container:** the nearest ancestor that is one of:
+  - an AG Grid host (§5.12) → GRID;
   - `form` → FORM; `nav`/`[role=navigation]` → NAV; `table` → TABLE; `dialog`/`[role=dialog|alertdialog]` → DIALOG; `section` → SECTION;
   - `[role=menu|listbox|menubar]`/`.dropdown-menu`/`.cdk-overlay-pane` → MENU;
   - `header`/`main`/`aside`/`footer` → LANDMARK;
   - `fieldset`/`[role=tablist|toolbar]`/a labelled `[role=group|region]` → GROUP;
   - an element with a stable `id`/`data-testid` **that contains something interactive** → ANCHORED.
 - Elements with no container go to the `PAGE_ROOT` module (`//body`).
-- **Module XPath priority:** `@data-testid` → stable `@id` → `@aria-label` → tag + its **own** heading text (a heading inside a nested module doesn't count) → tag + `@role` → overlay class → the bare tag for `header/main/aside/footer/nav`. The XPath must verify to exactly 1 match, otherwise the next option is tried. If every option fails, the module merges into its parent.
+- **Module XPath priority:** `@data-testid` → stable `@id` → `@aria-label` → tag + its **own** heading text (a heading inside a nested module doesn't count) → tag + `@role` → overlay class → the bare tag for `header/main/aside/footer/nav` → for a GRID, `//div[contains(concat(' ', normalize-space(@class), ' '), ' ag-root-wrapper ')]/ancestor::div[not(contains(@class, 'ag-'))][1]`. The XPath must verify to exactly 1 match, otherwise the next option is tried. If every option fails, the module merges into its parent.
 - Do not nest modules in the XML. The XML is page → module → xpath, flat. Frames hold their own modules.
 
 ### 5.4 Naming (deterministic, no AI)
@@ -264,7 +268,7 @@ The routeKey for `/blotter/48213?x=1` is `/blotter/{id}`, and the file-safe form
 
 ### 5.5 Stable vs dynamic ids
 An `id` is **dynamic** if it matches any of:
-`\d{4,}`, `[0-9a-f]{8}-`, `^ember\d+`, `^mat-[a-z-]+-\d+`, `^react-select-\d+`, `^cdk-`, `^:r[0-9a-z]+:$`, `^ext-gen\d+`, `^ui-id-\d+`
+`\d{4,}`, `[0-9a-f]{8}-`, `^ember\d+`, `^mat-[a-z-]+-\d+`, `^react-select-\d+`, `^cdk-`, `^:r[0-9a-z]+:$`, `^ext-gen\d+`, `^ui-id-\d+`, `^ag-\d+-`
 
 Dynamic ids are never written into any XPath; the same check applies to test ids, `name` and icon classes. Text containing four or more digits in a row is treated as data and is never used as a TEXT locator.
 
@@ -334,6 +338,23 @@ For each `UsageRecord`, the path is resolved in snapshot `snapshotSeq`, or in it
 - Frames merge by frame xpath.
 - `omitted` takes the maximum per type over the visits.
 - A module seen only in some snapshots, such as a dialog, is still included.
+
+### 5.12 AG Grid adapter
+Verified against AG Grid Community 36.2.0 (vendored in `fixtures/site/vendor/`, MIT).
+
+- **Host:** the nearest ancestor of `.ag-root-wrapper` without an `ag-` class, i.e. the element the app passed to `createGrid`. It becomes a **GRID** module and is also emitted as a `TABLE` entry in its parent module.
+- **Keys:**
+  - `col-id` is the column's field or colId, so it's stable and holds no data;
+  - `row-index` is the display position;
+  - `row-id` is never used, because it's data and redaction strips it.
+- **Entries**, relative to the GRID module:
+  - header: `.//div[@role='columnheader'][@col-id='notional']` (ATTRIBUTE), plus header controls (e.g. select-all) inside it;
+  - row: `.//div[@role='row'][@row-index={row}-1]` (ROW_TEMPLATE). `{row}` stays 1-based. It's omitted when pinned columns split a row into several row elements;
+  - cell: `<row>//div[@role='gridcell'][@col-id='X']`;
+  - cell controls: `<cell>//button[normalize-space()='Cancel']`, `<cell>//input[@type='checkbox']`, or `<cell>/descendant::<tag>[j]`.
+- **Names:** from the header text (kept by redaction), else from `col-id`. Built-in columns are named `selection` (`ag-Grid-SelectionColumn`) and `group` (`ag-Grid-AutoColumn`).
+- **Everything else inside the grid** (viewports, tab guards, measurement nodes, rows' own markup) is library chrome. It's neither emitted nor counted in `<omitted>`. App controls outside rows and headers, such as pagination buttons, follow the generic rules.
+- **Virtualised rows:** templates cover them; only rendered rows are verified, and `instances` counts those.
 
 ---
 
@@ -418,6 +439,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
 | `blotter.js` | opens a `role=dialog` on *Export* (CONTAINER_CHANGE) |
 | `components.html` + `components.js` | **one of each of the 21 required components**: a `cdk-overlay-pane` listbox and a `role=menu` that open on click, a same-origin (`frame.html`) and a cross-origin iframe, unanchored content for `<omitted>` |
 | `frame.html` | the same-origin frame's content |
+| `grid.html` + `vendor/ag-grid-community-36.2.0.min.js` | an AG Grid with a selection column, sortable headers, a numeric column and a *Cancel* button per row; `getRowId` returns order numbers, to prove they don't reach disk |
 
 ### Required tests
 - **core (unit):**
@@ -426,6 +448,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
   - the verifier rejects multi-match XPaths;
   - module kinds and priorities;
   - component rules (templates, icons, R1/R2, data-like text);
+  - AG Grid: column-keyed templates, pinned columns, unanchored host, two grids, generated ids;
   - golden-file XML; merging; manifest and usage parsing.
 - **core (golden run):**
   - all 21 components are covered;
@@ -445,6 +468,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
 - **agent (integration):** on a **JDK 17 + JDK 21 matrix**, headless Chrome + a local HTTP server.
   - Fixture flow: 4 manifest lines with the correct triggers, no duplicates, `settleMs <= 5000`, usage marked.
   - Components flow: every required type, the frame model, frame usage, omitted counts.
+  - Grid flow: GRID module, `col-id` templates, usage on header/cell/button, no `row-id` or cell data on disk, no LOW entries, no omitted chrome.
   - The overhead budget (§10) holds.
   - The test still passes when the output dir is unwritable.
 - **plugin:** `BasePlatformTestCase`.
@@ -469,6 +493,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
 7. A same-origin iframe's content appears as a `<frame>` with usage; a cross-origin one appears as an `IFRAME` entry with its content `skipped`.
 8. M1 criteria 3–7 still hold.
 9. `./gradlew check` is green in all three modules.
+10. The AG Grid fixture yields a GRID module with header, row, cell and cell-control templates keyed by `col-id`, all MEDIUM or better, with usage marked and no row keys or cell data on disk.
 
 ## 11. Hard stop
 
@@ -489,6 +514,7 @@ When §10 passes: **stop**. Write `M2-REPORT.md` with the overhead numbers (incl
 - Changing any contract in §3 or the schema in §8 requires bumping this file's version and a changelog line. Ask first.
 
 ## Changelog
+- **v0.2.1**: AG Grid adapter (§5.12): `ModuleKind.GRID`, the grid-host module fallback XPath, `^ag-\d+-` added to the dynamic ids, and `row-id`/`row-business-key`/cell `title` stripped by redaction.
 - **v0.2.0**: M2, approved 2026-11-07.
   - Model: 21 component types, element classes R1–R3, templates (`{row}`, `{n}`, `{text}`), stability, `used` + coverage counts, `<unmatched>`, `<omitted>`.
   - Frames: same-origin frames (`FrameRef`, `FrameModel`).
