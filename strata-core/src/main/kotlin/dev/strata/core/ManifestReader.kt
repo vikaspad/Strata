@@ -1,19 +1,41 @@
 package dev.strata.core
 
+import dev.strata.core.model.FrameRef
 import dev.strata.core.model.SnapshotRecord
 import dev.strata.core.model.Trigger
+import dev.strata.core.model.UsageRecord
 import java.nio.file.Files
 import java.nio.file.Path
 
-/** Reads `manifest.jsonl`. Lines that do not parse are reported through [onError] and skipped. */
+/** Reads `manifest.jsonl` and `usage.jsonl`. Lines that do not parse are reported through [onError] and skipped. */
 object ManifestReader {
 
-    fun read(manifest: Path, onError: (String) -> Unit = {}): List<SnapshotRecord> {
-        if (!Files.isRegularFile(manifest)) return emptyList()
-        return Files.readAllLines(manifest, Charsets.UTF_8).mapIndexedNotNull { index, line ->
+    fun read(manifest: Path, onError: (String) -> Unit = {}): List<SnapshotRecord> = lines(manifest, onError, ::parseLine)
+
+    fun readUsage(usage: Path, onError: (String) -> Unit = {}): List<UsageRecord> = lines(usage, onError, ::parseUsage)
+
+    private fun <T> lines(file: Path, onError: (String) -> Unit, parse: (String) -> Result<T>): List<T> {
+        if (!Files.isRegularFile(file)) return emptyList()
+        return Files.readAllLines(file, Charsets.UTF_8).mapIndexedNotNull { index, line ->
             if (line.isBlank()) return@mapIndexedNotNull null
-            parseLine(line).onFailure { onError("manifest line ${index + 1}: ${it.message}") }.getOrNull()
+            parse(line).onFailure { onError("${file.fileName} line ${index + 1}: ${it.message}") }.getOrNull()
         }
+    }
+
+    fun parseUsage(line: String): Result<UsageRecord> = runCatching {
+        val obj = Json(line).parseObject()
+        UsageRecord(
+            sessionId = obj.string("sessionId"),
+            snapshotSeq = obj.int("snapshotSeq"),
+            routeKey = obj.string("routeKey"),
+            command = obj.string("command"),
+            locatorUsing = obj["locatorUsing"] as? String,
+            locatorValue = obj["locatorValue"] as? String,
+            framePath = obj.ints("framePath"),
+            elementPath = obj.ints("elementPath"),
+            tag = obj.string("tag"),
+            usedAt = obj.string("usedAt"),
+        )
     }
 
     fun parseLine(line: String): Result<SnapshotRecord> = runCatching {
@@ -30,8 +52,17 @@ object ManifestReader {
             capturedAt = obj.string("capturedAt"),
             settleMs = obj.int("settleMs"),
             skipped = (obj["skipped"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+            frames = (obj["frames"] as? List<*>)?.map { f ->
+                @Suppress("UNCHECKED_CAST")
+                val frame = f as? Map<String, Any?> ?: throw IllegalArgumentException("bad frame")
+                FrameRef(index = frame.int("index"), url = frame.string("url"), domFile = frame.string("domFile"))
+            } ?: emptyList(),
         )
     }
+
+    private fun Map<String, Any?>.ints(key: String): List<Int> =
+        (this[key] as? List<*>)?.map { (it as? Number)?.toInt() ?: throw IllegalArgumentException("bad '$key'") }
+            ?: throw IllegalArgumentException("missing list '$key'")
 
     private fun Map<String, Any?>.string(key: String): String =
         this[key] as? String ?: throw IllegalArgumentException("missing string '$key'")

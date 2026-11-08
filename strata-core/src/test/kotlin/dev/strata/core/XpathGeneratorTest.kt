@@ -2,6 +2,7 @@ package dev.strata.core
 
 import dev.strata.core.model.ElementType
 import dev.strata.core.model.ModuleKind
+import dev.strata.core.model.Stability
 import dev.strata.core.model.Strategy
 import dev.strata.core.model.XpathEntry
 import org.jsoup.Jsoup
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /** Each strategy (§5.6) has a positive case and a fall-through case where it is not unique. */
 class XpathGeneratorTest {
@@ -86,9 +88,17 @@ class XpathGeneratorTest {
     }
 
     @Test
-    fun labelForWithDynamicIdUsesFollowing() {
-        assertStrategy(Strategy.LABEL_FOR, ".//label[normalize-space()='Trade date']/following::input[1]",
-            generate("<label for='mat-input-7'>Trade date</label><input id='mat-input-7' type='date'>", "input"))
+    fun labelForWithDynamicIdUsesTheForAttributeWithoutTheId() {
+        val entry = generate("<label for='mat-input-7'>Trade date</label><input id='mat-input-7' type='date'>", "input")
+        assertStrategy(Strategy.LABEL_FOR, ".//input[@id=//label[normalize-space()='Trade date']/@for]", entry)
+        assertEquals(Stability.MEDIUM, entry!!.stability)
+        assertTrue(DynamicIds.idLiterals(entry.value).isEmpty())
+    }
+
+    @Test
+    fun followingLabelIsLowStability() {
+        val entry = generate("<label for='qty'>Quantity</label><input id='qty'><span><input id='qty'></span>", "input")
+        assertEquals(Stability.LOW, entry!!.stability)
     }
 
     @Test
@@ -157,11 +167,14 @@ class XpathGeneratorTest {
             "<textarea name='notes'></textarea>" to ("notesTextarea" to ElementType.TEXTAREA),
             "<div role='tab' tabindex='0'>Open</div>" to ("openTab" to ElementType.TAB),
             "<a href='/x'>Reports</a>" to ("reportsLink" to ElementType.LINK),
+            "<a>Help</a>" to ("helpLink" to ElementType.LINK),
+            "<input type='password' id='pw'>" to ("pwInput" to ElementType.PASSWORD),
+            "<button aria-haspopup='listbox'>Currency</button>" to ("currencyDropdown" to ElementType.DROPDOWN),
             "<input type='submit' name='go'>" to ("goButton" to ElementType.BUTTON),
             "<mat-select formcontrolname='ccy' aria-label='Currency'></mat-select>" to ("currencyDropdown" to ElementType.DROPDOWN),
         )
         for ((html, expected) in cases) {
-            val entry = generate(html, Interactables.SELECTOR)
+            val entry = generate(html, "form > :not(label)")
             assertNotNull(entry, html)
             assertEquals(expected, entry.name to entry.type, html)
         }
@@ -231,7 +244,9 @@ class ModuleDetectorTest {
             listOf(
                 ModuleKind.PAGE_ROOT to "//body",
                 ModuleKind.NAV to "//nav[@aria-label='Main']",
-                ModuleKind.FORM to "//form[.//legend[normalize-space()='Filters']]",
+                // The legend belongs to the fieldset, so it can't name the form; the form merges into its parent.
+                ModuleKind.FORM to null,
+                ModuleKind.GROUP to "//fieldset[.//legend[normalize-space()='Filters']]",
                 ModuleKind.ANCHORED to "//div[@data-testid='grid']",
                 ModuleKind.SECTION to "//section[.//h2[normalize-space()='Allocations']]",
                 ModuleKind.DIALOG to "//div[@id='confirm']",
@@ -239,8 +254,31 @@ class ModuleDetectorTest {
             ),
             resolved.map { (kind, m) -> kind to m?.xpath },
         )
-        assertEquals(listOf("Page", "Main", "FiltersForm", "Grid", "Allocations", "ConfirmDialog"),
+        assertEquals(listOf("Page", "Main", "Filters", "Grid", "Allocations", "ConfirmDialog"),
             resolved.mapNotNull { it.second?.name })
+    }
+
+    @Test
+    fun landmarksMenusAndGroups() {
+        val doc = Jsoup.parse(
+            "<body><header><a href='/'>Home</a></header><main><div role='tablist'><button role='tab'>A</button></div>" +
+                "<ul role='menu' aria-label='Row actions'><li role='menuitem'>Edit</li></ul></main>" +
+                "<div class='cdk-overlay-pane'><div role='listbox'><mat-option role='option'>x</mat-option></div></div></body>",
+        )
+        val xpaths = ModuleXpaths(JsoupXpathVerifier())
+        val resolved = DefaultModuleDetector.detect(doc).mapNotNull { (el, kind) -> xpaths.resolve(doc, el, kind) }
+        assertEquals(
+            listOf(
+                "Page" to "//body",
+                "Header" to "//header",
+                "Main" to "//main",
+                "Tablist" to "//div[@role='tablist']",
+                "RowActionsMenu" to "//ul[@aria-label='Row actions']",
+                "OverlayMenu" to "//div[contains(concat(' ', normalize-space(@class), ' '), ' cdk-overlay-pane ')]",
+                "ListboxMenu" to "//div[@role='listbox']",
+            ),
+            resolved.map { it.name to it.xpath },
+        )
     }
 
     @Test

@@ -1,6 +1,9 @@
 package dev.strata.core
 
+import dev.strata.core.model.ElementType
 import dev.strata.core.model.SnapshotRecord
+import dev.strata.core.model.Stability
+import dev.strata.core.model.Strategy
 import dev.strata.core.model.Trigger
 import org.jsoup.Jsoup
 import org.junit.jupiter.api.Test
@@ -59,8 +62,18 @@ class GoldenXmlTest {
                 assertTrue(docs.any { verifier.count(it, module.xpath) == 1 }, module.xpath)
                 for (x in module.elements) {
                     assertEquals(1, x.matches)
-                    assertTrue(x.value.startsWith(".//") || x.value.startsWith("(.//"), x.value)
-                    assertTrue(docs.any { verifier.count(it, x.absolute) == 1 }, "does not re-verify: ${x.absolute}")
+                    assertTrue(x.value.startsWith("./") || x.value.startsWith("(.//"), x.value)
+                    when {
+                        x.value.contains("{text}") -> assertTrue(
+                            docs.any { verifier.count(it, x.absolute.replace(TemplateBuilder.TEXT_PLACEHOLDER, "")) == x.instances },
+                            "text template: ${x.absolute}",
+                        )
+                        x.isTemplate -> for (i in 1..x.instances) {
+                            val concrete = x.absolute.replace("{row}", "$i").replace("{n}", "$i")
+                            assertTrue(docs.any { verifier.count(it, concrete) == 1 }, "template instance $i: $concrete")
+                        }
+                        else -> assertTrue(docs.any { verifier.count(it, x.absolute) == 1 }, "does not re-verify: ${x.absolute}")
+                    }
                     DynamicIds.idLiterals(x.absolute).forEach { assertFalse(DynamicIds.isDynamic(it), x.absolute) }
                 }
             }
@@ -70,9 +83,37 @@ class GoldenXmlTest {
     @Test
     fun pagesAreSortedByRouteAndNamedByUniqueTitle(@TempDir tmp: Path) {
         val run = StrataGenerator.generate(copyRun(tmp))
-        assertEquals(listOf("/blotter/{id}", "/login"), run.pages.map { it.routeKey })
-        assertEquals(listOf("TradeBlotter", "Login"), run.pages.map { it.name })
+        assertEquals(listOf("/blotter/{id}", "/components", "/login"), run.pages.map { it.routeKey })
+        assertEquals(listOf("TradeBlotter", "Components", "Login"), run.pages.map { it.name })
         assertEquals("20261107-120000", run.runId)
+    }
+
+    /** M2 criterion 0 against the golden run: all 21 required components, with usage, frames and omitted counts. */
+    @Test
+    fun allRequiredComponentsAreCovered(@TempDir tmp: Path) {
+        val page = StrataGenerator.generate(copyRun(tmp)).pages.single { it.routeKey == "/components" }
+        val entries = page.modules.flatMap { it.elements }
+        val types = entries.map { it.type }.toSet()
+        val required = ElementType.entries - ElementType.TAB - ElementType.OTHER_INTERACTIVE
+        assertEquals(emptySet(), required.toSet() - types)
+        assertEquals("/frame.html", page.frames.single().routeKey)
+        assertTrue(page.frames.single().modules.flatMap { it.elements }.any { it.name == "questionInput" && it.used })
+        assertTrue(page.omitted.isNotEmpty())
+        assertTrue(entries.single { it.name == "priceCell" }.let { it.used && it.stability == Stability.MEDIUM && it.instances == 3 })
+        assertTrue(entries.single { it.name == "closeButton" }.let { it.strategy == Strategy.ROW_TEMPLATE && it.instances == 3 })
+        assertTrue(entries.single { it.name == "countryOption" }.let { it.used && it.instances == 3 })
+        assertTrue(entries.single { it.name == "currencyOption" }.let { it.used && it.instances == 3 })
+        assertTrue(entries.none { it.strategy == Strategy.LABEL_FOR && it.value.contains("following::") })
+    }
+
+    @Test
+    fun coverageNumbersAreExact(@TempDir tmp: Path) {
+        val run = StrataGenerator.generate(copyRun(tmp))
+        val xml = DefaultCoverageXmlWriter.render(run)
+        val all = run.pages.flatMap { p -> (p.modules + p.frames.flatMap { it.modules }).flatMap { it.elements } }
+        assertTrue(xml.contains("schema=\"2\""))
+        assertTrue(xml.contains("used=\"${all.count { it.used }}\" total=\"${all.size}\">"))
+        assertEquals(emptyList(), run.unmatched)
     }
 }
 
@@ -178,16 +219,31 @@ class RedactionContractTest {
 
     @Test
     fun snapshotsExist() {
-        assertEquals(4, snapshots.size)
+        assertEquals(10, snapshots.size)
     }
 
+    /** Only `···`, or an action label repeated across >= 2 rows (the §4.4 repeated-label exception). */
     @Test
     fun noTbodyTextSurvives() {
         for (file in snapshots) {
             val doc = Jsoup.parse(file.toFile(), "UTF-8")
-            for (el in doc.select("tbody, tbody *")) {
-                val own = el.ownText().trim()
-                assertTrue(own.isEmpty() || own == Texts.REDACTED, "tbody text '$own' in $file")
+            for (tbody in doc.select("tbody")) {
+                for (el in tbody.select("*")) {
+                    val own = el.ownText().trim()
+                    val repeatedAction = el.`is`("button, a, [role=button], [role=link]") &&
+                        tbody.select("tr").count { row -> row.select("button, a").any { it.text() == el.text() } } >= 2
+                    assertTrue(own.isEmpty() || own == Texts.REDACTED || repeatedAction, "tbody text '$own' in $file")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun optionAndContentTextIsRedacted() {
+        for (file in snapshots) {
+            val doc = Jsoup.parse(file.toFile(), "UTF-8")
+            for (el in doc.select("option, [role=option], mat-option, p, li:not([role]), td")) {
+                assertTrue(el.ownText().isBlank() || el.ownText().trim() == Texts.REDACTED, "'${el.ownText()}' in $file")
             }
         }
     }
