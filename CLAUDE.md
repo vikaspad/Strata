@@ -1,6 +1,6 @@
 # CLAUDE.md — Strata: Run with Locator Coverage
 
-**Version:** v0.2.1 · **Milestone:** M2 · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
+**Version:** v0.2.2 · **Milestone:** M2 · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
 
 > Assumptions:
 > - A1. The target framework is on **Selenium 4.x**. Every command funnels through `RemoteWebDriver.execute(CommandPayload)`.
@@ -23,6 +23,7 @@ Everything M1 delivers (right-click a test → **Run with Locator Coverage** →
 - **Same-origin iframes.** Frame content is captured with its page and modelled as `<frame>` scopes.
 - **Overhead.** A cheap probe skips the settle wait when nothing changed, the settle window is configurable, and the overhead budget is per command (§10).
 - **AG Grid.** An adapter models AG Grid by column (§5.12): a GRID module, `col-id` headers, `row-index` row templates, and per-column cell and control templates.
+- **Cards.** Repeated sibling containers such as product tiles get one `{n}` template per control (§5.13) instead of a positional entry per copy.
 
 ### Decisions (2026-11-07)
 - D2: text of paragraphs, spans, divs, table cells and list items **stays redacted**. They are located by attributes and structure only.
@@ -258,7 +259,7 @@ The routeKey for `/blotter/48213?x=1` is `/blotter/{id}`, and the file-safe form
   - `fieldset`/`[role=tablist|toolbar]`/a labelled `[role=group|region]` → GROUP;
   - an element with a stable `id`/`data-testid` **that contains something interactive** → ANCHORED.
 - Elements with no container go to the `PAGE_ROOT` module (`//body`).
-- **Module XPath priority:** `@data-testid` → stable `@id` → `@aria-label` → tag + its **own** heading text (a heading inside a nested module doesn't count) → tag + `@role` → overlay class → the bare tag for `header/main/aside/footer/nav` → for a GRID, `//div[contains(concat(' ', normalize-space(@class), ' '), ' ag-root-wrapper ')]/ancestor::div[not(contains(@class, 'ag-'))][1]`. The XPath must verify to exactly 1 match, otherwise the next option is tried. If every option fails, the module merges into its parent.
+- **Module XPath priority:** `@data-testid` → stable `@id` → `@aria-label` → tag + its **own** heading text (a heading inside a nested module doesn't count) → tag + `@role` → for a form: `@name`, a route-like `@action` (no query, no id segment, no dynamic id), then each stable class → overlay class → the bare tag for `header/main/aside/footer/nav` → for a GRID, `//div[contains(concat(' ', normalize-space(@class), ' '), ' ag-root-wrapper ')]/ancestor::div[not(contains(@class, 'ag-'))][1]`. The XPath must verify to exactly 1 match, otherwise the next option is tried. If every option fails, the module merges into its parent.
 - Do not nest modules in the XML. The XML is page → module → xpath, flat. Frames hold their own modules.
 
 ### 5.4 Naming (deterministic, no AI)
@@ -355,6 +356,12 @@ Verified against AG Grid Community 36.2.0 (vendored in `fixtures/site/vendor/`, 
 - **Names:** from the header text (kept by redaction), else from `col-id`. Built-in columns are named `selection` (`ag-Grid-SelectionColumn`) and `group` (`ag-Grid-AutoColumn`).
 - **Everything else inside the grid** (viewports, tab guards, measurement nodes, rows' own markup) is library chrome. It's neither emitted nor counted in `<omitted>`. App controls outside rows and headers, such as pagination buttons, follow the generic rules.
 - **Virtualised rows:** templates cover them; only rendered rows are verified, and `instances` counts those.
+
+### 5.13 Cards
+- **Card group:** two or more siblings with the same tag and the same stable classes (state classes such as `active` or `show` ignored) that each contain something interactive and share at least one **label in every card**: text, `aria-label`, `title`, `alt`, `name`, `placeholder` or a test id. Same-signature groups under same-signature parents in one module are combined (a carousel's slides). Only the innermost groups count. Nothing inside tables, selects or AG Grid.
+- **Labels that differ between cards** (names, prices) are data and are never used, like the repeated-label exception (§4.4).
+- **Card locator:** `<parent>/<tag>[class][{n}]`, the parent by test id, stable id or class, or `(<cards>)[{n}]` for several parents. It's emitted as a `<class>Card` entry.
+- **Controls and content in a card**, each step tried in order, the first matching exactly one element in its card wins: `//tag[shared label]` → `//<ancestor class>//tag[shared label]` → `//<ancestor class>//tag` → `//tag` → `/descendant::tag[j]` (interactive or used only). Each step becomes one template, `<card locator><step>`, verified per card. Unanchored, unused content is not templated (R1).
 
 ---
 
@@ -514,6 +521,7 @@ When §10 passes: **stop**. Write `M2-REPORT.md` with the overhead numbers (incl
 - Changing any contract in §3 or the schema in §8 requires bumping this file's version and a changelog line. Ask first.
 
 ## Changelog
+- **v0.2.2**: Cards (§5.13): `{n}` templates for controls in repeated sibling containers. Forms without an id, test id, label or heading get a module XPath from `@name`, `@action` or a class (§5.3).
 - **v0.2.1**: AG Grid adapter (§5.12): `ModuleKind.GRID`, the grid-host module fallback XPath, `^ag-\d+-` added to the dynamic ids, and `row-id`/`row-business-key`/cell `title` stripped by redaction.
 - **v0.2.0**: M2, approved 2026-11-07.
   - Model: 21 component types, element classes R1–R3, templates (`{row}`, `{n}`, `{text}`), stability, `used` + coverage counts, `<unmatched>`, `<omitted>`.
