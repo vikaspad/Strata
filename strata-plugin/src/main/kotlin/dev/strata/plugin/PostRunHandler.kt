@@ -38,7 +38,7 @@ class PostRunHandler(private val project: Project, private val runDir: Path) : P
                     return
                 }
                 val xml = publish(generated.xml) ?: return
-                StrataNotifications.generated(project, generated.pages, generated.elements, xml)
+                StrataNotifications.generated(project, generated.pages, generated.elements, generated.used, xml)
             }
 
             override fun onThrowable(error: Throwable) {
@@ -48,17 +48,19 @@ class PostRunHandler(private val project: Project, private val runDir: Path) : P
         }.queue()
     }
 
-    private class Generated(val xml: ByteArray, val pages: Int, val elements: Int)
+    private class Generated(val xml: ByteArray, val pages: Int, val elements: Int, val used: Int)
 
     private fun generate(runDir: Path): Generated? {
         if (!Files.isRegularFile(runDir.resolve(StrataGenerator.MANIFEST))) return null
         val run = StrataGenerator.generate(runDir)
         val out = runDir.resolve(XML_NAME)
         DefaultCoverageXmlWriter.write(run, out)
+        val entries = run.pages.flatMap { page -> (page.modules + page.frames.flatMap { it.modules }).flatMap { it.elements } }
         return Generated(
             xml = Files.readAllBytes(out),
             pages = run.pages.size,
-            elements = run.pages.sumOf { page -> page.modules.sumOf { it.elements.size } },
+            elements = entries.size,
+            used = entries.count { it.used },
         )
     }
 

@@ -23,13 +23,19 @@ object StrataNotifications {
             .notify(project)
     }
 
-    fun generated(project: Project, pages: Int, elements: Int, xml: VirtualFile) {
+    fun generated(project: Project, pages: Int, elements: Int, used: Int, xml: VirtualFile) {
         NotificationGroupManager.getInstance().getNotificationGroup(GROUP)
-            .createNotification(TITLE, "${plural(pages, "page")}, ${plural(elements, "element")}", NotificationType.INFORMATION)
+            .createNotification(TITLE, summary(pages, elements, used), NotificationType.INFORMATION)
             .addAction(NotificationAction.createSimpleExpiring("Open XML") {
                 FileEditorManager.getInstance(project).openFile(xml, true)
             })
             .notify(project)
+    }
+
+    /** "2 pages, 26 elements, 9 used (35%)". */
+    fun summary(pages: Int, elements: Int, used: Int): String {
+        val percent = if (elements == 0) 0 else Math.round(used * 100.0 / elements).toInt()
+        return "${plural(pages, "page")}, ${plural(elements, "element")}, $used used ($percent%)"
     }
 
     private fun plural(n: Int, word: String): String = if (n == 1) "1 $word" else "$n ${word}s"

@@ -104,6 +104,12 @@ class AgentPatcherTest : BasePlatformTestCase() {
         assertFalse(runner.canRun(LocatorCoverageExecutor.ID, notJava))
     }
 
+    fun testNotificationSummary() {
+        assertEquals("2 pages, 26 elements, 9 used (35%)", StrataNotifications.summary(2, 26, 9))
+        assertEquals("1 page, 1 element, 0 used (0%)", StrataNotifications.summary(1, 1, 0))
+        assertEquals("0 pages, 0 elements, 0 used (0%)", StrataNotifications.summary(0, 0, 0))
+    }
+
     fun testExecutorIsRegistered() {
         assertEquals("StrataLocatorCoverage", strataExecutor.id)
         assertEquals("Run with Locator Coverage", strataExecutor.startActionText)
