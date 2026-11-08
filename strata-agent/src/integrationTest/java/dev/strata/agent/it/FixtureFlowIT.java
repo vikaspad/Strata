@@ -79,6 +79,65 @@ class FixtureFlowIT {
         server.stop(0);
     }
 
+    /** AG Grid adapter: a real AG Grid Community grid, driven the way a typical test drives it. */
+    @Test
+    void gridFlow() throws IOException {
+        final ChromeOptions options = new ChromeOptions()
+                .addArguments("--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1280,900");
+        final ChromeDriver driver = new ChromeDriver(options);
+        final String sessionId = driver.getSessionId().toString();
+        try {
+            final WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            driver.get(base + "/grid");
+            wait.until(ExpectedConditions.numberOfElementsToBe(By.cssSelector("[role=row][row-index]"), 4));
+            driver.findElement(By.cssSelector(".ag-header-cell[col-id='orderId']")).click();          // sort
+            driver.findElement(By.cssSelector("[row-id='O-48214'] [col-id='actions'] button")).click(); // cancel row 2
+            wait.until(ExpectedConditions.textToBe(By.cssSelector("[row-id='O-48214'] [col-id='status']"), "Cancelled"));
+            driver.findElement(By.cssSelector("[row-index='0'] [col-id='notional']")).getText();
+            driver.findElements(By.cssSelector("[role=row][row-index]"));
+        } finally {
+            driver.quit();
+        }
+        if (!Boolean.getBoolean("strata.it.expectCapture")) {
+            return;
+        }
+        final Path out = Path.of(System.getProperty("strata.out"));
+        verifyGrid(out, records(out, sessionId));
+    }
+
+    static void verifyGrid(final Path out, final List<SnapshotRecord> records) throws IOException {
+        assertEquals(List.of("GET"), records.stream().map(r -> r.getTrigger().name()).collect(Collectors.toList()));
+        final String html = Files.readString(out.resolve(records.get(0).getDomFile()), StandardCharsets.UTF_8);
+        for (final String secret : List.of("row-id=", "O-48213", "Meridian", "1250000", "1,250,000")) {
+            assertFalse(html.contains(secret), "'" + secret + "' survived redaction in the grid snapshot");
+        }
+        assertTrue(html.contains("Notional"), "column header text is kept");
+
+        final LocatorCoverageRun run = StrataGenerator.INSTANCE.generate(out);
+        final PageModel page = page(run, "/grid");
+        final ModuleModel grid = page.getModules().stream().filter(m -> m.getKind().name().equals("GRID")).findFirst()
+                .orElseThrow(() -> new AssertionError("no GRID module"));
+        assertEquals("//div[@data-testid='orders-grid']", grid.getXpath());
+        final java.util.Map<String, XpathEntry> byName = grid.getElements().stream()
+                .collect(Collectors.toMap(XpathEntry::getName, x -> x));
+        assertEquals("//div[@data-testid='orders-grid']//div[@role='columnheader'][@col-id='notional']",
+                byName.get("notionalHeader").getAbsolute());
+        assertEquals(".//div[@role='row'][@row-index={row}-1]", byName.get("ordersRow").getValue());
+        assertEquals(4, byName.get("notionalCell").getInstances());
+        assertTrue(byName.get("notionalCell").getUsed(), "notional cell used");
+        assertTrue(byName.get("orderHeader").getUsed(), "sorted header used");
+        assertTrue(byName.get("cancelButton").getUsed(), "cancel button used");
+        assertEquals("ROW_TEMPLATE", byName.get("cancelButton").getStrategy().name());
+        assertTrue(byName.containsKey("selectionCheckbox"), "select-all checkbox: " + byName.keySet());
+        for (final XpathEntry x : grid.getElements()) {
+            assertFalse(x.getStability().name().equals("LOW"), "LOW entry in grid: " + x);
+            assertFalse(x.getAbsolute().matches(".*ag-\\d+-.*"), "AG Grid generated id in " + x.getAbsolute());
+        }
+        assertTrue(page.getOmitted().isEmpty(), "AG Grid internals must not count as omitted: " + page.getOmitted());
+        assertTrue(run.getUnmatched().stream().noneMatch(u -> u.getRouteKey().equals("/grid")), run.getUnmatched().toString());
+        verifyAllXpaths(out, run, ManifestReader.INSTANCE.read(out.resolve("manifest.jsonl"), m -> kotlin.Unit.INSTANCE));
+    }
+
     /** M2 criterion 0: every one of the 21 required components comes out with a verified entry. */
     @Test
     void componentsFlow() throws IOException {

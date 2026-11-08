@@ -14,7 +14,8 @@ final class DynamicIds {
             Pattern.compile("^cdk-"),
             Pattern.compile("^:r[0-9a-z]+:$"),
             Pattern.compile("^ext-gen\\d+"),
-            Pattern.compile("^ui-id-\\d+"));
+            Pattern.compile("^ui-id-\\d+"),
+            Pattern.compile("^ag-\\d+-"));
 
     private DynamicIds() {
     }

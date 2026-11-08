@@ -199,7 +199,12 @@ final class Scripts {
                 var names = elements[e].getAttributeNames();
                 for (var n = 0; n < names.length; n++) {
                   var name = names[n].toLowerCase();
-                  if (name === 'value' || name === 'style' || name.indexOf('on') === 0) elements[e].removeAttribute(names[n]);
+                  // row-id / row-business-key carry the application's own row keys (AG Grid getRowId): data.
+                  if (name === 'value' || name === 'style' || name.indexOf('on') === 0 || name === 'row-id'
+                      || name === 'row-business-key'
+                      || (name === 'title' && elements[e].closest('td, [role=gridcell]'))) {
+                    elements[e].removeAttribute(names[n]);
+                  }
                 }
               }
               return root.outerHTML;
