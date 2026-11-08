@@ -105,6 +105,8 @@ fun registerAgentIt(taskName: String, jdk: Int, unwritable: Boolean, withAgent: 
             "-Dstrata.out=${out.absolutePath}",
             "-Dstrata.fixtures=${fixtures.absolutePath}",
             "-Dstrata.it.expectCapture=${withAgent && !unwritable}",
+            // ./gradlew … -PquietMs=200 measures a shorter settle window (CLAUDE.md §4.2).
+            providers.gradleProperty("quietMs").orNull?.let { "-Dstrata.quietMs=$it" },
         )
     }
 }

@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /** The run directory: {@code manifest.jsonl}, {@code dom/} and {@code agent.log} (CLAUDE.md §3.1). */
 final class AgentOutput {
     static final String MANIFEST = "manifest.jsonl";
+    static final String USAGE = "usage.jsonl";
 
     private final Path dir;
     private final AgentLog log;
@@ -69,10 +70,18 @@ final class AgentOutput {
         Files.writeString(dir.resolve(relative), html, StandardCharsets.UTF_8);
     }
 
-    /** Appends one line under a file lock so forked JVMs sharing a run dir do not interleave. */
     void appendManifest(final String jsonLine) throws IOException {
+        append(MANIFEST, jsonLine);
+    }
+
+    void appendUsage(final String jsonLine) throws IOException {
+        append(USAGE, jsonLine);
+    }
+
+    /** Appends one line under a file lock so forked JVMs sharing a run dir do not interleave. */
+    private void append(final String file, final String jsonLine) throws IOException {
         final byte[] bytes = (jsonLine + "\n").getBytes(StandardCharsets.UTF_8);
-        try (FileChannel ch = FileChannel.open(dir.resolve(MANIFEST),
+        try (FileChannel ch = FileChannel.open(dir.resolve(file),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
              FileLock ignored = ch.lock()) {
             final ByteBuffer buf = ByteBuffer.wrap(bytes);

@@ -13,7 +13,10 @@ public final class ExecuteAdvice {
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void exit(@Advice.This final Object driver, @Advice.Argument(0) final CommandPayload payload) {
-        Dispatcher.onCommandCompleted(driver, payload.getName());
+    public static void exit(
+            @Advice.This final Object driver,
+            @Advice.Argument(0) final CommandPayload payload,
+            @Advice.Return final Object response) {
+        Dispatcher.onCommandCompleted(driver, payload.getName(), payload.getParameters(), response);
     }
 }

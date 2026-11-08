@@ -37,9 +37,12 @@ public final class StrataAgent {
         }
         try {
             final AgentOutput output = AgentOutput.open(Path.of(out));
-            Dispatcher.install(new SnapshotCapture(output), output.log());
+            final int quietMs = Integer.getInteger("strata.quietMs", 500);
+            final int capMs = Integer.getInteger("strata.capMs", 5000);
+            Dispatcher.install(new SnapshotCapture(output, quietMs, capMs), output.log());
             install(inst, output.log());
-            output.log().info("agent started on Java " + Runtime.version() + ", out=" + out);
+            output.log().info("agent started on Java " + Runtime.version() + ", out=" + out
+                    + ", quietMs=" + quietMs + ", capMs=" + capMs);
         } catch (Throwable t) {
             System.err.println("[strata] agent failed to start; the test runs without it: " + t);
         }
