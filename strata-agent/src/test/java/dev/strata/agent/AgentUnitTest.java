@@ -1,0 +1,84 @@
+package dev.strata.agent;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+class AgentUnitTest {
+
+    @ParameterizedTest
+    @CsvSource({
+            "http://localhost:8080/blotter/48213?x=1, /blotter/{id}",
+            "https://h/blotter/99001#export, /blotter/{id}",
+            "http://h/login, /login",
+            "http://h/, /",
+            "http://h, /",
+            "http://h/orders/550e8400-e29b-41d4-a716-446655440000/edit, /orders/{id}/edit",
+            "http://h/trade/AB12CD34EF, /trade/{id}",
+            "http://h/blob/0123456789abcdef01, /blob/{id}",
+            "http://h/Settings/Profile/, /Settings/Profile",
+    })
+    void normalizesRoutesLikeCore(final String url, final String expected) {
+        assertEquals(expected, RouteKeys.normalize(url));
+    }
+
+    @Test
+    void fileSafeRouteKeys() {
+        assertEquals("blotter_id", RouteKeys.fileSafe("/blotter/{id}"));
+        assertEquals("root", RouteKeys.fileSafe("/"));
+        assertEquals("orders_id_edit", RouteKeys.fileSafe("/orders/{id}/edit"));
+    }
+
+    @Test
+    void stripsQueryButKeepsFragment() {
+        assertEquals("http://h/a#x", RouteKeys.stripQuery("http://h/a?u=1&p=2#x"));
+        assertEquals("http://h/a", RouteKeys.stripQuery("http://h/a?u=1"));
+        assertEquals("http://h/a#x", RouteKeys.stripQuery("http://h/a#x"));
+    }
+
+    @Test
+    void containerHashIgnoresOrder() {
+        assertEquals(SnapshotCapture.containerHash(List.of("b", "a")), SnapshotCapture.containerHash(List.of("a", "b")));
+        assertEquals("da39a3ee5e6b4b0d3255bfef95601890afd80709", SnapshotCapture.containerHash(List.of()));
+    }
+
+    @Test
+    void mapsOnlyM1Commands() {
+        assertEquals("GET", SnapshotCapture.triggerFor("get"));
+        assertEquals("CLICK", SnapshotCapture.triggerFor("clickElement"));
+        assertEquals("BACK", SnapshotCapture.triggerFor("goBack"));
+        assertEquals("FORWARD", SnapshotCapture.triggerFor("goForward"));
+        assertEquals("REFRESH", SnapshotCapture.triggerFor("refresh"));
+        assertNull(SnapshotCapture.triggerFor("executeScript"));
+        assertNull(SnapshotCapture.triggerFor("sendKeysToElement"));
+    }
+
+    @Test
+    void manifestLineHasContractFieldOrderAndEscaping() {
+        final String line = Json.snapshotRecord(new Json.SnapshotLine(
+                3, "s1", "http://h/a\"b", "/a", "T\\itle\n", "CLICK", "abc", "dom/0003-a.dom.html",
+                "2026-11-06T22:33:40.123Z", 512, List.of("iframe#chart")));
+        assertEquals("{\"seq\":3,\"sessionId\":\"s1\",\"url\":\"http://h/a\\\"b\",\"routeKey\":\"/a\","
+                + "\"title\":\"T\\\\itle\\n\",\"trigger\":\"CLICK\",\"containerHash\":\"abc\","
+                + "\"domFile\":\"dom/0003-a.dom.html\",\"capturedAt\":\"2026-11-06T22:33:40.123Z\","
+                + "\"settleMs\":512,\"skipped\":[\"iframe#chart\"]}", line);
+    }
+
+    @Test
+    void dispatcherSwallowsSinkFailuresAndIgnoresReentry() {
+        final int[] calls = {0};
+        Dispatcher.install((driver, command) -> {
+            calls[0]++;
+            Dispatcher.onCommandCompleted(driver, "get"); // re-entrant: must be ignored
+            throw new IllegalStateException("boom");
+        }, new AgentLog(java.nio.file.Path.of(System.getProperty("java.io.tmpdir"), "strata-unit-agent.log")));
+        Dispatcher.onCommandCompleted(new Object(), "clickElement");
+        Dispatcher.onCommandCompleted(new Object(), "findElement");
+        assertEquals(1, calls[0]);
+        Dispatcher.install(null, null);
+    }
+}
