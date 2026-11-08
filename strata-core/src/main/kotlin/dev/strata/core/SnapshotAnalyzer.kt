@@ -54,7 +54,18 @@ class SnapshotAnalyzer(private val log: (String) -> Unit = {}) {
 
         val generator = DefaultXpathGenerator(verifier, { covered[it] }) { resolved[it]?.xpath }
 
+        // Repeated cards (§5.13) first, so their controls get one template each instead of a positional entry per card.
+        fun eligible(el: Element): ElementType? {
+            val type = Interactables.typeOf(el) ?: return null
+            if (Interactables.isHidden(el) || insideSvg(el) || AgGrid.handledByAdapter(el) || resolved.containsKey(el)) return null
+            return if (handledByTemplate(el, type) && type != ElementType.LIST_ITEM) null else type
+        }
+        val cards = CardTemplates(verifier).build(body, ::moduleOf, { resolved[it]?.xpath }, { resolved.containsKey(it) },
+            ::eligible) { usedSet.containsKey(it) }
+        for ((module, t) in cards) add(module, t.entry, t.instances)
+
         for (el in body.select("*").drop(1)) {
+            if (covered.containsKey(el)) continue
             val type = Interactables.typeOf(el) ?: continue
             if (Interactables.isHidden(el) || insideSvg(el) || handledByTemplate(el, type)) continue
             if (AgGrid.handledByAdapter(el)) continue
@@ -96,20 +107,20 @@ class SnapshotAnalyzer(private val log: (String) -> Unit = {}) {
             if (Interactables.isHidden(table)) continue
             val asModule = resolved[table]
             val module = if (asModule != null) table else moduleOf(table)
-            val base = if (asModule != null) "." else covered[table]?.value ?: continue
+            val base = if (asModule != null) "." else covered[table]?.takeUnless { it.isTemplate }?.value ?: continue
             val moduleAbsolute = resolved[module]?.xpath ?: continue
             val tableName = covered[table]?.name?.removeSuffix("Table")?.ifEmpty { null } ?: "table"
             for (t in templates.table(table, module, moduleAbsolute, base, tableName)) add(module, t.entry, t.instances)
         }
         for (list in body.select("ul, ol, [role=list]")) {
-            val listEntry = covered[list] ?: continue
+            val listEntry = covered[list]?.takeUnless { it.isTemplate } ?: continue
             val module = moduleOf(list)
             val moduleAbsolute = resolved[module]?.xpath ?: continue
             val name = Names.withSuffix(listEntry.name.removeSuffix("List").ifEmpty { "list" }, "Item")
             templates.listItems(module, moduleAbsolute, listEntry.value, list, name)?.let { add(module, it.entry, it.instances) }
         }
         for (select in body.select("select")) {
-            val selectEntry = covered[select] ?: continue
+            val selectEntry = covered[select]?.takeUnless { it.isTemplate } ?: continue
             val options = select.select("option")
             if (options.isEmpty() || !selectEntry.value.startsWith(".//")) continue
             val module = moduleOf(select)

@@ -49,8 +49,9 @@ object DefaultModuleDetector : ModuleDetector {
 data class ResolvedModule(val element: Element, val kind: ModuleKind, val xpath: String, val name: String)
 
 /**
- * Module XPath priority (§5.3): data-testid → stable id → aria-label → tag + heading text → tag + role → tag alone.
- * The last two only win when they are unique in the snapshot, e.g. the one `<header>` or the one `[role=listbox]`.
+ * Module XPath priority (§5.3): data-testid → stable id → aria-label → tag + heading text → tag + role → for a form,
+ * `@name`, `@action` and its classes → tag alone. The later ones only win when they are unique in the snapshot,
+ * e.g. the one `<header>`, the one `[role=listbox]` or the one `form[@action='/login']`.
  */
 class ModuleXpaths(private val verifier: JsoupXpathVerifier) {
 
@@ -75,12 +76,30 @@ class ModuleXpaths(private val verifier: JsoupXpathVerifier) {
             out += "//$tag[.//$headingTag[normalize-space()=${xpathLiteral(text)}]]" to text
         }
         if (role.isNotEmpty()) out += "//$tag[@role=${xpathLiteral(role)}]" to role
+        if (tag == "form") {
+            el.attr("name").takeIf { DynamicIds.isStable(it) }?.let { out += "//form[@name=${xpathLiteral(it)}]" to it }
+            stableAction(el.attr("action"))?.let { source -> out += "//form[@action=${xpathLiteral(el.attr("action"))}]" to source }
+            el.classNames().filter { DynamicIds.isStable(it) }.forEach { out += "//form[${hasClass(it)}]" to it }
+        }
         if (el.hasClass("cdk-overlay-pane")) out += "//$tag[${hasClass("cdk-overlay-pane")}]" to "overlay"
         if (el.hasClass("dropdown-menu")) out += "//$tag[${hasClass("dropdown-menu")}]" to "dropdown menu"
         // Landmarks are normally one per page; a second one makes this fail verification and fall through.
         if (tag in SINGLETON_TAGS) out += "//$tag" to tag
         if (AgGrid.isHost(el)) out += AgGrid.fallbackModuleXpath() to "grid"
         return out
+    }
+
+    /**
+     * A form `action` that names a route rather than a record: no query, no id-like segment (§5.1), no dynamic id.
+     * Returns its last path segment as the name source, e.g. `login` for `/login`.
+     */
+    private fun stableAction(action: String): String? {
+        val trimmed = action.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("javascript:", ignoreCase = true)) return null
+        if (trimmed.contains('?') || DynamicIds.isDynamic(trimmed)) return null
+        val route = DefaultRouteNormalizer.normalize(trimmed)
+        if (route.contains("{id}")) return null
+        return route.substringAfterLast('/')
     }
 
     /** The first heading that belongs to [el] itself, not to a module nested inside it. */
