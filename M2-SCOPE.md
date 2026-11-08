@@ -1,6 +1,7 @@
 # M2 Scope: Coverage and Locator Quality (proposal)
 
-**Status:** draft for sign-off. Nothing here is built. Once it is approved, it becomes `CLAUDE.md` v0.2.0, with a
+**Status:** approved 2026-11-07 and built; see `CLAUDE.md` v0.2.0 and `M2-REPORT.md`. Kept as the scoping record.
+**Original status:** draft for sign-off. Once it is approved, it becomes `CLAUDE.md` v0.2.0, with a
 changelog line, because it changes the §3 contracts and the §8 schema.
 **Inputs:** `M1-REPORT.md` (overhead numbers, the three XPath-quality issues, deviations) and the component review
 (iframes, dropdowns, AG Grid).
