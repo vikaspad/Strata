@@ -1,6 +1,6 @@
 # CLAUDE.md — Strata: Run with Locator Coverage
 
-**Version:** v0.4.0 · **Milestone:** M2 + M3 tool window (approved 2026-11-08) · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
+**Version:** v0.4.1 · **Milestone:** M2 + M3 tool window (approved 2026-11-08) · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
 
 > Assumptions:
 > - A1. The target framework is on **Selenium 4.x**. Every command funnels through `RemoteWebDriver.execute(CommandPayload)`.
@@ -37,7 +37,7 @@ Everything M1 delivers (right-click a test → **Run with Locator Coverage** →
 - Shadow DOM and cross-origin iframe content (logged as `skipped`), nested frames (`iframe#x:nested`)
 - AI/LLM naming or any other AI call
 - The *Should* item not built yet: Gradle-delegated runs (see `M2-SCOPE.md`)
-- Other grid libraries, and generic ARIA grids without `tbody` (only AG Grid has an adapter)
+- Adapters for other grid libraries and generic ARIA grids (only AG Grid has one; their repeated rows still collapse through §5.13)
 
 ---
 
@@ -47,7 +47,7 @@ Everything M1 delivers (right-click a test → **Run with Locator Coverage** →
 strata/
 ├── CLAUDE.md, M1-REPORT.md, M2-SCOPE.md, M2-REPORT.md
 ├── settings.gradle.kts
-├── strata-core/        # pure Kotlin, `jvmTarget = 17` (toolchain 21), apiVersion 1.9, Jsoup. No IntelliJ, no Selenium.
+├── strata-core/        # pure Kotlin, `jvmTarget = 17` (toolchain 21), apiVersion 1.9, Jsoup, Jaxen. No IntelliJ, no Selenium.
 ├── strata-agent/       # **Java 17 bytecode** (`--release 17`), ByteBuddy (shaded+relocated). No Kotlin.
 ├── strata-plugin/      # IntelliJ Platform plugin, Kotlin, depends on strata-core
 └── fixtures/
@@ -340,7 +340,7 @@ Dynamic ids are never written into any XPath; the same check applies to test ids
 ### 5.9 Templates
 **Output form:** the rules below write the dynamic part as `{row}` (1-based row), `{n}` (1-based item or card) and `{text}` (option text) to say what it stands for. Emitted entries carry `%s` in its place, and any literal `%` is escaped as `%%`, e.g. `./tbody/tr[%s]` or `.//option[normalize-space()='%s']`. Each template has exactly one `%s`.
 
-Templates are verified for every instance in the snapshot. For each `i`, the substituted XPath must select exactly instance `i`, both within the module and from the root. `instances` records how many instances were verified.
+Templates are verified for every instance in the snapshot. For each `i`, the substituted XPath must select exactly instance `i`, both within the module and from the root. `instances` records how many instances were verified. The relative form is checked for every instance; the row part is resolved once and shared by a table's templates, and the rest is evaluated from each row, so a 1000-row grid takes seconds. The absolute form is the module's unique xpath plus that value, so it is checked on the first and last instance.
 
 - **Table**, relative to the table module (`.`) or the table's own entry:
   - `thead/tr` (header row);
@@ -389,6 +389,7 @@ Verified against AG Grid Community 36.2.0 (vendored in `fixtures/site/vendor/`, 
 
 ### 5.13 Cards
 - **Card group:** two or more siblings with the same tag and the same stable classes (state classes such as `active` or `show` ignored) that each contain something interactive and share at least one **label in every card**: text, `aria-label`, `title`, `alt`, `name`, `placeholder` or a test id. Same-signature groups under same-signature parents in one module are combined (a carousel's slides). Only the innermost groups count. Nothing inside tables, selects or AG Grid.
+- **Bulk records:** the shared label is not required for `[role=row]` siblings (a header row among them need not be interactive) or for a run of **20 or more** siblings, because repetition alone makes them records. Rows and their controls get `{n}` templates; `{n}` counts every sibling, so a header row is card 1. A parent with no other anchor is located by position (LOW). Unused content in these records is counted in `<omitted>`. Fewer than 20 siblings with differing labels keep their own entries.
 - **Labels that differ between cards** (names, prices) are data and are never used, like the repeated-label exception (§4.4).
 - **Card locator:** `<parent>/<tag>[class][{n}]`, the parent by test id, stable id or class, or `(<cards>)[{n}]` for several parents. It's emitted as a `<class>Card` entry.
 - **Controls and content in a card**, each step tried in order, the first matching exactly one element in its card wins: `//tag[shared label]` → `//<ancestor class>//tag[shared label]` → `//<ancestor class>//tag` → `//tag` → `/descendant::tag[j]` (interactive or used only). Each step becomes one template, `<card locator><step>`, verified per card. Unanchored, unused content is not templated (R1).
@@ -564,6 +565,7 @@ When §10 passes: **stop**. Write `M2-REPORT.md` with the overhead numbers (incl
 - Changing any contract in §3 or the schema in §8 requires bumping this file's version and a changelog line. Ask first.
 
 ## Changelog
+- **v0.4.1**: Large grids. Bulk records (§5.13) collapse repeated rows without a shared label into templates. Verification resolves rows once and uses Jaxen instead of the JDK XPath evaluator (§5.9). No change to §3 or the XML schema.
 - **v0.4.0**: Tool window (§7) with Pages Captured, Interactable Elements, Covered by Tests and Broken Test Locators. Failed lookups (§4.5a): `failed-lookups.jsonl`, `FailedLookup`, `CaptureSink.onCommandFailed`, XML schema 4 with `<failed-lookup>`. Routes carry the host when a run spans several sites (§5.1), and the agent's state key includes the host.
 - **v0.3.1**: Catch-up capture (§4.3): a page state no navigation command saw is captured on the next lookup with new elements, or before `quit`/`close`. `CaptureSink` gains `onSessionEnding`. `snapshotSeq` follows the state the browser is showing, including a return to a captured state.
 - **v0.3.0**: Templates are emitted with `%s` for the dynamic part instead of `{row}`, `{n}` and `{text}`, so they fill with `String.format(xpath, value)`; a literal `%` is written `%%`. `XpathEntry.isTemplate` is decided by strategy, and `absoluteFor(arg)` fills one in. XML schema 3. The named placeholders in §5.9–5.13 describe what `%s` stands for.
