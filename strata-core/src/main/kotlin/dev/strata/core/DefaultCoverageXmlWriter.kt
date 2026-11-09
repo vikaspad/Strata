@@ -6,7 +6,7 @@ import dev.strata.core.model.XpathEntry
 import java.nio.file.Files
 import java.nio.file.Path
 
-/** Schema v2 (CLAUDE.md §8). Output is byte-identical for identical input; line endings are always `\n`. */
+/** Schema v4 (CLAUDE.md §8). Output is byte-identical for identical input; line endings are always `\n`. */
 object DefaultCoverageXmlWriter : CoverageXmlWriter {
 
     override fun write(run: LocatorCoverageRun, out: Path) {
@@ -18,7 +18,7 @@ object DefaultCoverageXmlWriter : CoverageXmlWriter {
         val pages = run.pages.sortedBy { it.routeKey }
         val all = pages.flatMap { p -> p.modules + p.frames.flatMap { it.modules } }
         append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        append("<locator-coverage schema=\"3\" run=\"${esc(run.runId)}\" generated=\"${esc(run.generatedAt)}\"${counts(all)}>\n")
+        append("<locator-coverage schema=\"4\" run=\"${esc(run.runId)}\" generated=\"${esc(run.generatedAt)}\"${counts(all)}>\n")
         for (page in pages) {
             val pageModules = page.modules + page.frames.flatMap { it.modules }
             append("  <page name=\"${esc(page.name)}\" route=\"${esc(page.routeKey)}\" visits=\"${page.visits}\"${counts(pageModules)}>\n")
@@ -33,6 +33,9 @@ object DefaultCoverageXmlWriter : CoverageXmlWriter {
         }
         for (u in run.unmatched.sortedWith(compareBy({ it.routeKey }, { it.locator }, { it.command }, { it.reason }))) {
             append("  <unmatched route=\"${esc(u.routeKey)}\" locator=\"${esc(u.locator)}\" command=\"${esc(u.command)}\" reason=\"${u.reason}\"/>\n")
+        }
+        for (f in run.failedLookups.sortedWith(compareBy({ it.routeKey }, { it.locator }, { it.command }, { it.reason }))) {
+            append("  <failed-lookup route=\"${esc(f.routeKey)}\" locator=\"${esc(f.locator)}\" command=\"${esc(f.command)}\" reason=\"${f.reason}\"/>\n")
         }
         append("</locator-coverage>\n")
     }

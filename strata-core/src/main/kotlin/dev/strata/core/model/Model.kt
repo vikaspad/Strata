@@ -44,6 +44,7 @@ data class LocatorCoverageRun(
     val generatedAt: String,
     val pages: List<PageModel>,
     val unmatched: List<UnmatchedUsage> = emptyList(),
+    val failedLookups: List<FailedLookup> = emptyList(),
 )
 
 data class PageModel(
@@ -135,3 +136,26 @@ data class UnmatchedUsage(
 )
 
 enum class UnmatchedReason { NO_SNAPSHOT, STATE_NOT_CAPTURED, NOT_ADDRESSABLE }
+
+/** One line of `failed-lookups.jsonl`, written by the agent. Field names and order are a contract (CLAUDE.md §3.1). */
+data class FailedLookupRecord(
+    val sessionId: String,
+    val url: String,
+    val routeKey: String,
+    val command: String,
+    val locatorUsing: String,
+    val locatorValue: String,
+    val outcome: LookupOutcome,
+    val recordedAt: String,
+)
+
+/** RECOVERED retracts an earlier failure of the same locator in the same session: a wait polled, then found it. */
+enum class LookupOutcome { NOT_FOUND, INVALID_SELECTOR, RECOVERED }
+
+/** A locator a test used that never found anything in its session. */
+data class FailedLookup(
+    val routeKey: String,
+    val locator: String,
+    val command: String,
+    val reason: LookupOutcome,
+)

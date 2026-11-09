@@ -127,7 +127,7 @@ class GoldenXmlTest {
         val run = StrataGenerator.generate(copyRun(tmp))
         val xml = DefaultCoverageXmlWriter.render(run)
         val all = run.pages.flatMap { p -> (p.modules + p.frames.flatMap { it.modules }).flatMap { it.elements } }
-        assertTrue(xml.contains("schema=\"3\""))
+        assertTrue(xml.contains("schema=\"4\""))
         assertTrue(xml.contains("used=\"${all.count { it.used }}\" total=\"${all.size}\">"))
         assertEquals(emptyList(), run.unmatched)
     }
@@ -195,6 +195,75 @@ class MergeTest {
         writeRun(dir, record(1, "/a", "A") to "<body><section><button>x</button></section></body>")
         StrataGenerator.generate(dir)
         assertTrue(dir.resolve(StrataGenerator.LOG).readText().contains("merged module <section>"))
+    }
+
+    @Test
+    fun routesCarryTheHostOnlyWhenARunSpansSites(@TempDir tmp: Path) {
+        val dir = tmp.resolve("r")
+        writeRun(
+            dir,
+            record(1, "/", "One").copy(url = "https://www.one.test/") to "<body><button>A</button></body>",
+            record(2, "/", "Two").copy(url = "https://two.test/") to "<body><button>B</button></body>",
+        )
+        val pages = StrataGenerator.generate(dir).pages
+        assertEquals(listOf("two.test/", "www.one.test/"), pages.map { it.routeKey })
+        assertEquals(listOf(1, 1), pages.map { it.visits })
+
+        val single = tmp.resolve("s")
+        writeRun(single, record(1, "/a", "A") to "<body><button>A</button></body>", record(2, "/b", "B") to "<body><button>B</button></body>")
+        assertEquals(listOf("/a", "/b"), StrataGenerator.generate(single).pages.map { it.routeKey })
+    }
+
+    private fun failed(session: String, value: String, outcome: String, url: String = "http://h/a") =
+        """{"sessionId":"$session","url":"$url","routeKey":"/a","command":"findElement","locatorUsing":"id",""" +
+            """"locatorValue":"$value","outcome":"$outcome","recordedAt":"2026-11-08T12:00:00.000Z"}"""
+
+    @Test
+    fun failedLookupsDropRecoveredOnesAndAreWrittenSorted(@TempDir tmp: Path) {
+        val dir = tmp.resolve("r")
+        writeRun(dir, record(1, "/a", "A") to "<body><button>A</button></body>")
+        Files.write(
+            dir.resolve(StrataGenerator.FAILED_LOOKUPS),
+            listOf(
+                failed("s", "polled", "NOT_FOUND"),
+                failed("s", "zed", "NOT_FOUND"),
+                failed("s", "polled", "RECOVERED"),
+                failed("t", "zed", "NOT_FOUND"),
+                failed("t", "bad[", "INVALID_SELECTOR"),
+            ),
+        )
+        val run = StrataGenerator.generate(dir)
+        assertEquals(listOf("id: bad[", "id: zed"), run.failedLookups.map { it.locator }.sorted())
+        val xml = DefaultCoverageXmlWriter.render(run)
+        assertTrue(xml.indexOf("locator=\"id: bad[\" command=\"findElement\" reason=\"INVALID_SELECTOR\"") in 0 until xml.indexOf("locator=\"id: zed\""), xml)
+    }
+
+    @Test
+    fun aRecoveryInOneSessionDoesNotClearAnotherSession(@TempDir tmp: Path) {
+        val dir = tmp.resolve("r")
+        writeRun(dir, record(1, "/a", "A") to "<body><button>A</button></body>")
+        Files.write(
+            dir.resolve(StrataGenerator.FAILED_LOOKUPS),
+            listOf(failed("s", "x", "NOT_FOUND"), failed("s", "x", "RECOVERED"), failed("t", "x", "NOT_FOUND")),
+        )
+        assertEquals(listOf("id: x"), StrataGenerator.generate(dir).failedLookups.map { it.locator })
+    }
+
+    @Test
+    fun summaryCountsOnlyInteractableEntriesAndBrokenPerPage(@TempDir tmp: Path) {
+        val dir = tmp.resolve("r")
+        writeRun(dir, record(1, "/a", "A") to "<body><h1>Title</h1><button>Go</button><a href='/x'>Next</a></body>")
+        Files.write(dir.resolve("usage.jsonl"), listOf(
+            """{"sessionId":"s","snapshotSeq":1,"routeKey":"/a","command":"findElement","locatorUsing":"id","locatorValue":"g",""" +
+                """"framePath":[],"elementPath":[1,1],"tag":"button","usedAt":"2026-11-08T12:00:00.000Z"}""",
+        ))
+        Files.write(dir.resolve(StrataGenerator.FAILED_LOOKUPS), listOf(failed("s", "gone", "NOT_FOUND")))
+        val summary = RunSummaries.of(StrataGenerator.generate(dir))
+        assertEquals(2, summary.interactable)
+        assertEquals(1, summary.covered)
+        assertEquals(50, summary.coveredPercent)
+        assertEquals(listOf("id: gone"), summary.broken.map { it.locator })
+        assertEquals(listOf(PageSummary("A", "/a", 1, 2, 1, 1)), summary.pages)
     }
 
     @Test

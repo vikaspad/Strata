@@ -1,8 +1,11 @@
 package dev.strata.core
 
 import dev.strata.core.model.ElementType
+import dev.strata.core.model.FailedLookup
+import dev.strata.core.model.FailedLookupRecord
 import dev.strata.core.model.FrameModel
 import dev.strata.core.model.LocatorCoverageRun
+import dev.strata.core.model.LookupOutcome
 import dev.strata.core.model.ModuleKind
 import dev.strata.core.model.ModuleModel
 import dev.strata.core.model.OmittedCount
@@ -29,8 +32,13 @@ object StrataGenerator {
 
     fun generate(runDir: Path, now: Instant): LocatorCoverageRun {
         val log = mutableListOf<String>()
-        val records = ManifestReader.read(runDir.resolve(MANIFEST), log::add).sortedBy { it.seq }
-        val usage = ManifestReader.readUsage(runDir.resolve(USAGE), log::add)
+        val raw = ManifestReader.read(runDir.resolve(MANIFEST), log::add).sortedBy { it.seq }
+        val siteRoute = siteRouter(raw)
+        val records = raw.map { it.copy(routeKey = siteRoute(it.url, it.routeKey)) }
+        val urlBySeq = raw.associate { it.seq to it.url }
+        val usage = ManifestReader.readUsage(runDir.resolve(USAGE), log::add).map { r ->
+            urlBySeq[r.snapshotSeq]?.let { r.copy(routeKey = siteRoute(it, r.routeKey)) } ?: r
+        }
         val unmatched = mutableListOf<UnmatchedUsage>()
         val known = records.map { it.seq }.toSet()
         usage.filter { it.snapshotSeq !in known }.forEach { unmatched += unmatchedOf(it, UnmatchedReason.NO_SNAPSHOT) }
@@ -50,8 +58,29 @@ object StrataGenerator {
             generatedAt = now.truncatedTo(ChronoUnit.SECONDS).toString(),
             pages = pages,
             unmatched = unmatched.distinct(),
+            failedLookups = failedLookups(ManifestReader.readFailedLookups(runDir.resolve(FAILED_LOOKUPS), log::add), siteRoute),
         )
     }
+
+    /** CLAUDE.md §5.1: routes carry the host only when the run spans more than one, so single-site output stays short. */
+    private fun siteRouter(records: List<SnapshotRecord>): (String, String) -> String {
+        val multiSite = records.map { DefaultRouteNormalizer.host(it.url) }.filter { it.isNotEmpty() }.distinct().size > 1
+        return { url, route ->
+            val host = DefaultRouteNormalizer.host(url)
+            if (multiSite && host.isNotEmpty()) host + route else route
+        }
+    }
+
+    /** Locators that never found anything in a session; a failure the same session later recovered from is dropped. */
+    private fun failedLookups(
+        records: List<FailedLookupRecord>,
+        siteRoute: (String, String) -> String,
+    ): List<FailedLookup> =
+        records.groupBy { Triple(it.sessionId, it.locatorUsing, it.locatorValue) }.values
+            .filter { attempts -> attempts.none { it.outcome == LookupOutcome.RECOVERED } }
+            .flatten()
+            .map { FailedLookup(siteRoute(it.url, it.routeKey), "${it.locatorUsing}: ${it.locatorValue}", it.command, it.outcome) }
+            .distinct()
 
     /** One snapshot's verified modules, in document order, each with its verified entries. */
     fun analyze(doc: Document, log: (String) -> Unit = {}): List<Pair<ResolvedModule, List<XpathEntry>>> =
@@ -200,5 +229,6 @@ object StrataGenerator {
 
     const val MANIFEST: String = "manifest.jsonl"
     const val USAGE: String = "usage.jsonl"
+    const val FAILED_LOOKUPS: String = "failed-lookups.jsonl"
     const val LOG: String = "generator.log"
 }

@@ -1,6 +1,8 @@
 package dev.strata.core
 
+import dev.strata.core.model.FailedLookupRecord
 import dev.strata.core.model.FrameRef
+import dev.strata.core.model.LookupOutcome
 import dev.strata.core.model.SnapshotRecord
 import dev.strata.core.model.Trigger
 import dev.strata.core.model.UsageRecord
@@ -20,6 +22,23 @@ object ManifestReader {
             if (line.isBlank()) return@mapIndexedNotNull null
             parse(line).onFailure { onError("${file.fileName} line ${index + 1}: ${it.message}") }.getOrNull()
         }
+    }
+
+    fun readFailedLookups(file: Path, onError: (String) -> Unit = {}): List<FailedLookupRecord> =
+        lines(file, onError, ::parseFailedLookup)
+
+    fun parseFailedLookup(line: String): Result<FailedLookupRecord> = runCatching {
+        val obj = Json(line).parseObject()
+        FailedLookupRecord(
+            sessionId = obj.string("sessionId"),
+            url = obj.string("url"),
+            routeKey = obj.string("routeKey"),
+            command = obj.string("command"),
+            locatorUsing = obj.string("locatorUsing"),
+            locatorValue = obj.string("locatorValue"),
+            outcome = LookupOutcome.valueOf(obj.string("outcome")),
+            recordedAt = obj.string("recordedAt"),
+        )
     }
 
     fun parseUsage(line: String): Result<UsageRecord> = runCatching {

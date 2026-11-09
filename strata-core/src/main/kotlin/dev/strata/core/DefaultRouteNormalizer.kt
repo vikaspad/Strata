@@ -24,6 +24,13 @@ object DefaultRouteNormalizer : RouteNormalizer {
         }
     }
 
+    /** Lower-case `host[:port]` of a URL, or empty if it has no scheme. */
+    fun host(url: String): String {
+        if (!url.contains("://")) return ""
+        return url.substringAfter("://").substringBefore('/').substringBefore('?').substringBefore('#')
+            .substringAfterLast('@').lowercase()
+    }
+
     /** `/blotter/{id}` → `blotter_id`; `/` → `root`. */
     fun fileSafe(routeKey: String): String {
         val safe = routeKey.trim('/')
