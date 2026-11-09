@@ -64,7 +64,7 @@ A sample project with a local test site and tests is in [`../StrataDemo`](../Str
 An excerpt from the golden run in `fixtures/` (the `unmatched` line is illustrative):
 
 ```xml
-<locator-coverage schema="3" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="29" total="141">
+<locator-coverage schema="4" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="29" total="141">
   <page name="TradeBlotter" route="/blotter/{id}" visits="3" used="3" total="45">
     <module name="Trades" kind="TABLE" xpath="//table[@id='trades']" used="0" total="12">
       <xpath name="tradesRow" type="TABLE_ROW" strategy="ROW_TEMPLATE" stability="MEDIUM" matches="1" instances="2" used="false"
@@ -156,7 +156,7 @@ Commands that don't change the page cost about 5 ms each. A new page state costs
 - No Gradle- or Maven-delegated runs, and no command-line or CI mode yet.
 - Shadow DOM content, cross-origin iframes and iframes nested inside iframes are skipped (logged as `skipped`).
 - AG Grid is the only grid library with an adapter. Other `div`-based grids get position-based locators.
-- There's no tool window, gutter marks or code insertion yet. The output is the XML file.
+- There are no gutter marks or code insertion yet. Results are in the **Locator Coverage** tool window and the XML file.
 
 ## How it works
 
@@ -202,5 +202,5 @@ open issues, are in [`M1-REPORT.md`](M1-REPORT.md) and [`M2-REPORT.md`](M2-REPOR
 ## Status
 
 Milestone 2 is done. The right-click flow has not yet been checked by hand in a running IDE, and `v0.1.0-m1`
-isn't tagged. Next is milestone 3: a tool window, gutter marks, a diff between runs, and inserting `@FindBy`
+isn't tagged. Next is the rest of milestone 3: gutter marks, a diff between runs, and inserting `@FindBy`
 fields.

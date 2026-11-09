@@ -1,6 +1,6 @@
 # CLAUDE.md — Strata: Run with Locator Coverage
 
-**Version:** v0.3.0 · **Milestone:** M2 · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
+**Version:** v0.4.0 · **Milestone:** M2 + M3 tool window (approved 2026-11-08) · **Status:** active (M1 baseline committed; `v0.1.0-m1` not tagged, see `M1-REPORT.md`)
 
 > Assumptions:
 > - A1. The target framework is on **Selenium 4.x**. Every command funnels through `RemoteWebDriver.execute(CommandPayload)`.
@@ -32,7 +32,7 @@ Everything M1 delivers (right-click a test → **Run with Locator Coverage** →
 - D5: one milestone, with one stop and one report.
 
 ### Out of scope (do NOT build; reject if asked mid-milestone)
-- Tool window, gutter badges, run diff, Insert `@FindBy` (M3)
+- Gutter badges, run diff, Insert `@FindBy` (M3). The tool window (§7) is built.
 - `WebDriverListener` fallback, Playwright, Selenium 3
 - Shadow DOM and cross-origin iframe content (logged as `skipped`), nested frames (`iframe#x:nested`)
 - AI/LLM naming or any other AI call
@@ -69,6 +69,7 @@ Output dir is the `-Dstrata.out=<abs path>` system property, e.g. `<project>/.st
 <out>/
 ├── manifest.jsonl          # one SnapshotRecord per line, append-only
 ├── usage.jsonl             # one UsageRecord per line, append-only
+├── failed-lookups.jsonl    # one FailedLookupRecord per line, append-only; absent if no lookup failed
 ├── agent.log
 └── dom/<seq>-<routeKey>.dom.html, dom/<seq>-<routeKey>.frame<index>.dom.html
 ```
@@ -106,13 +107,29 @@ data class UsageRecord(
 )
 ```
 
+```kotlin
+data class FailedLookupRecord(
+    val sessionId: String,
+    val url: String,              // the page showing when the lookup failed; query string stripped by the agent
+    val routeKey: String,
+    val command: String,
+    val locatorUsing: String,
+    val locatorValue: String,
+    val outcome: LookupOutcome,
+    val recordedAt: String
+)
+enum class LookupOutcome { NOT_FOUND, INVALID_SELECTOR, RECOVERED }   // RECOVERED retracts that session's failure
+```
+
 The agent writes JSON by hand (no JSON lib). Field names and order are exactly as above.
 
 ### 3.2 Core model
 
 ```kotlin
 data class LocatorCoverageRun(val runId: String, val generatedAt: String, val pages: List<PageModel>,
-                              val unmatched: List<UnmatchedUsage> = emptyList())
+                              val unmatched: List<UnmatchedUsage> = emptyList(),
+                              val failedLookups: List<FailedLookup> = emptyList())
+data class FailedLookup(val routeKey: String, val locator: String, val command: String, val reason: LookupOutcome)
 data class PageModel(val name: String, val routeKey: String, val visits: Int, val modules: List<ModuleModel>,
                      val frames: List<FrameModel> = emptyList(), val omitted: List<OmittedCount> = emptyList())
 data class FrameModel(val name: String, val xpath: String /* the <iframe> in its page */, val routeKey: String,
@@ -165,11 +182,12 @@ object StrataGenerator {
 ## 4. Agent (strata-agent)
 
 ### 4.1 Interception
-- ByteBuddy `AgentBuilder` with `Advice` on `org.openqa.selenium.remote.RemoteWebDriver#execute(CommandPayload)`, on **method exit**, and only when no exception was thrown. Every command passes through this overload: `execute(String, Map)` only wraps its arguments into a payload, and `get`/element commands call the payload overload directly. The advice passes the command name, its parameters and `Response#getValue()`.
+- ByteBuddy `AgentBuilder` with `Advice` on `org.openqa.selenium.remote.RemoteWebDriver#execute(CommandPayload)`, on **method exit**. Commands that threw are ignored, except failed lookups (§4.5a); the exception always reaches the test unchanged. Every command passes through this overload: `execute(String, Map)` only wraps its arguments into a payload, and `get`/element commands call the payload overload directly. The advice passes the command name, its parameters and `Response#getValue()`.
 - Commands:
   - navigation `get`, `clickElement`, `goBack`, `goForward`, `refresh` (capture, §4.2–4.4);
   - lookups `findElement(s)`, `findChildElement(s)` (usage, §4.5);
   - element interactions `clickElement`, `sendKeysToElement`, `clearElement`, `submitElement`, `getElementText`, `getElementAttribute`, `getElementDomAttribute`, `getElementDomProperty`, `isElementSelected`, `isElementEnabled`, `getElementTagName`, `getElementRect`, `getElementValueOfCssProperty`, `getElementAriaRole`, `getElementAccessibleName` (usage).
+  - session end `quit`, `close`: seen on **method entry**, while the session can still answer scripts (catch-up, §4.3);
   - All other commands are ignored.
 - **Re-entrancy guard:** a `ThreadLocal<Boolean>`. The agent's own script calls go through `execute` too and must be ignored.
 - Every agent failure is caught and logged to `<out>/agent.log`. **The agent must never fail a test, or slow it beyond the settle cap.** If the output dir can't be created, capture is disabled entirely.
@@ -187,6 +205,8 @@ object StrataGenerator {
 A snapshot is taken when the (`routeKey`, `containerHash`) pair hasn't been captured yet in this session.
 - `containerHash` is the sha1 of the sorted `id`/`data-testid` values of `form, nav, table, dialog, [role=dialog], section, main > *`, **excluding §5.5 dynamic ids**, plus one overlay marker `overlay:<tag>:<role>:<aria-label>` per `[role=listbox], [role=menu], [role=dialog], dialog[open], .cdk-overlay-pane, .dropdown-menu.show`.
 - A CLICK that changes the hash on the same document is recorded as `CONTAINER_CHANGE`.
+- **Catch-up:** a navigation can start after its click returned, so no navigation command sees the new page. Before recording a lookup that brings new element ids, and before `quit`/`close`, the agent runs the cheap probe. A state not captured yet is settled and captured, with trigger `CLICK` (`CONTAINER_CHANGE` on the same document). `about:` and `data:` pages are ignored.
+- Each captured state remembers its snapshot, so a return to a captured state makes that snapshot the session's latest for usage (§4.5).
 
 ### 4.4 In-browser redaction (data never reaches disk unredacted)
 A JS function walks a **clone** of each document (top, and each same-origin frame).
@@ -211,7 +231,13 @@ A JS function walks a **clone** of each document (top, and each same-origin fram
 - **Lookup:** the returned element ids (`RemoteWebElement#getId` or W3C references), up to 200 per lookup, are reported with the lookup's `using`/`value`.
 - **Interaction:** the element id in `parameters["id"]` is reported if it hasn't been seen yet. This runs **before** any capture triggered by the same command, because a click may navigate away.
 - **One `PATHS` script call per command** that brings new element ids. The elements are passed as W3C references. Each element id is recorded once per session.
-- `snapshotSeq` is the session's latest snapshot. Core resolves `elementPath` in that snapshot.
+- `snapshotSeq` is the snapshot of the state the browser was last seen showing. Core resolves `elementPath` in that snapshot.
+
+### 4.5a Failed lookups
+- A lookup that throws `NoSuchElementException` → `NOT_FOUND`; `InvalidSelectorException` → `INVALID_SELECTOR`. Exceptions are matched by class name, so the agent doesn't link against them. Any other exception is ignored.
+- A locator (`using` + `value`) is recorded once per session, only if it hasn't found anything in that session. A later success appends `RECOVERED`, so a `WebDriverWait` that polled and then found its element is not reported.
+- `findElements` returning an empty list is not a failure: it's the usual way to check for absence.
+- The first failure runs one probe to read the current URL. It does **not** catch up (§4.3): a failing wait is often polling a page that is still rendering, and capturing that state would block capture of the finished page.
 
 ### 4.6 Packaging
 - Shadow jar: relocate `net.bytebuddy` to `dev.strata.shaded.bytebuddy`.
@@ -227,6 +253,8 @@ Strip the scheme, host, query, and fragment. Then replace any path segment that 
 `^\d+$`, `^[0-9a-f]{8}-[0-9a-f]{4}-`, `^[A-Z0-9]{8,}$`, `^[0-9a-f]{16,}$`
 
 The routeKey for `/blotter/48213?x=1` is `/blotter/{id}`, and the file-safe form is `blotter_id`.
+
+The agent always writes path-only routeKeys. When a run's snapshots span more than one `host[:port]`, core prefixes every route with its host (`www.saucedemo.com/inventory.html`), so different sites never merge. A single-site run keeps path-only routes. The agent's captured-state key (§4.3) always includes the host.
 
 ### 5.2 Element classes (what gets an entry, and as what type)
 - **Interactive:** always emitted, with POSITIONAL as a last resort.
@@ -373,6 +401,8 @@ Verified against AG Grid Community 36.2.0 (vendored in `fixtures/site/vendor/`, 
 // strata-agent: dev.strata.agent.CaptureSink — the agent calls only this
 public interface CaptureSink {
     void onCommandCompleted(Object driver, String command, Map<String, ?> parameters, Object result);
+    default void onCommandFailed(Object driver, String command, Map<String, ?> parameters, Throwable thrown) { }   // lookups only
+    default void onSessionEnding(Object driver, String command) { }   // before quit/close
 }
 ```
 
@@ -391,6 +421,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
   <programRunner implementation="dev.strata.plugin.LocatorCoverageRunner"/>
   <java.programPatcher implementation="dev.strata.plugin.AgentPatcher"/>
   <notificationGroup id="Strata" displayType="BALLOON"/>
+  <toolWindow id="Locator Coverage" anchor="bottom" factoryClass="dev.strata.plugin.CoverageToolWindowFactory"/>
 </extensions>
 <projectListeners>
   <listener class="dev.strata.plugin.StrataExecutionListener" topic="com.intellij.execution.ExecutionListener"/>
@@ -405,17 +436,24 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
 | `StrataExecutionListener` | `processStarting` for this executor attaches a `PostRunHandler` before the process can terminate |
 | `PostRunHandler` | `ProcessListener.processTerminated` → `Task.Backgroundable` → `StrataGenerator` → write `<runDir>/locator-coverage.xml` and copy it to `.strata/locator-coverage.xml` → VFS refresh → notification "N pages, M elements, U used (P%) · Open XML" |
 
+**Tool window "Locator Coverage":** four tiles from `RunSummaries.of(run)`, a per-page table and a broken-locator table.
+- **Pages Captured:** pages in the run.
+- **Interactable Elements:** entries of the interactive types (`RunSummaries.INTERACTABLE_TYPES`); a template counts once.
+- **Covered by Tests:** those with `used=true`, and their percentage.
+- **Broken Test Locators:** `run.failedLookups`.
+- `CoverageState` (project service) holds the latest run. After an IDE restart, the newest `.strata/runs/*` is regenerated off the EDT when the window first opens.
+
 - `runId` = `yyyyMMdd-HHmmss`, suffixed `-2`, `-3`… on a collision.
 - The agent jar is bundled in the plugin's `lib/`, and its path is resolved via `PluginManagerCore`.
 - The generator never runs on the EDT. File writes go through `WriteAction` + VFS refresh.
 
 ---
 
-## 8. XML output (schema v3, exact)
+## 8. XML output (schema v4, exact)
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<locator-coverage schema="3" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="24" total="119">
+<locator-coverage schema="4" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="24" total="119">
   <page name="Components" route="/components" visits="3" used="19" total="63">
     <module name="ProfileForm" kind="FORM" xpath="//form[@id='profile-form']" used="6" total="15">
       <xpath name="countryOption" type="OPTION" strategy="TEXT_TEMPLATE" stability="MEDIUM" matches="1" instances="3" used="true"
@@ -428,11 +466,12 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
     <omitted type="DIV" count="4"/>
   </page>
   <unmatched route="/login" locator="css selector: .toast" command="findElement" reason="STATE_NOT_CAPTURED"/>
+  <failed-lookup route="/login" locator="id: submit-old" command="findElement" reason="NOT_FOUND"/>
 </locator-coverage>
 ```
 
 - `instances` is written only for templates. `used`/`total` count entries (a template counts once) at run, page, frame and module level.
-- Pages are sorted by `route`; modules, frames and xpaths follow document order of the first visit; `<omitted>` is sorted by type; `<unmatched>` is sorted by route, locator, command and reason.
+- Pages are sorted by `route`; modules, frames and xpaths follow document order of the first visit; `<omitted>` is sorted by type; `<unmatched>` and `<failed-lookup>` are each sorted by route, locator, command and reason.
 - Output is deterministic: the same inputs always produce byte-identical XML apart from the `generated` attribute. Line endings are `\n`.
 
 ---
@@ -448,6 +487,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
 | `blotter.js` | opens a `role=dialog` on *Export* (CONTAINER_CHANGE) |
 | `components.html` + `components.js` | **one of each of the 21 required components**: a `cdk-overlay-pane` listbox and a `role=menu` that open on click, a same-origin (`frame.html`) and a cross-origin iframe, unanchored content for `<omitted>` |
 | `frame.html` | the same-origin frame's content |
+| `delayed.html`, `delayed-end.html` | a button whose navigation starts 300 ms after the click returns, for catch-up (§4.3) |
 | `grid.html` + `vendor/ag-grid-community-36.2.0.min.js` | an AG Grid with a selection column, sortable headers, a numeric column and a *Cancel* button per row; `getRowId` returns order numbers, to prove they don't reach disk |
 
 ### Required tests
@@ -478,6 +518,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
   - Fixture flow: 4 manifest lines with the correct triggers, no duplicates, `settleMs <= 5000`, usage marked.
   - Components flow: every required type, the frame model, frame usage, omitted counts.
   - Grid flow: GRID module, `col-id` templates, usage on header/cell/button, no `row-id` or cell data on disk, no LOW entries, no omitted chrome.
+  - Delayed navigation flows: the last page is captured on a lookup and before `quit`; usage resolves in the right snapshot, including after a return to a captured state.
   - The overhead budget (§10) holds.
   - The test still passes when the output dir is unwritable.
 - **plugin:** `BasePlatformTestCase`.
@@ -506,7 +547,7 @@ All capture and usage logic lives behind `CaptureSink`, so a future `WebDriverLi
 
 ## 11. Hard stop
 
-When §10 passes: **stop**. Write `M2-REPORT.md` with the overhead numbers (including the quietMs comparison), what was not built and why, and the biggest locator-quality issues still open. Do not start M3 (tool window, gutter badges, run diff, Insert `@FindBy`).
+When §10 passes: **stop**. Write `M2-REPORT.md` with the overhead numbers (including the quietMs comparison), what was not built and why, and the biggest locator-quality issues still open. Do not start the rest of M3 (gutter badges, run diff, Insert `@FindBy`).
 
 ---
 
@@ -523,6 +564,8 @@ When §10 passes: **stop**. Write `M2-REPORT.md` with the overhead numbers (incl
 - Changing any contract in §3 or the schema in §8 requires bumping this file's version and a changelog line. Ask first.
 
 ## Changelog
+- **v0.4.0**: Tool window (§7) with Pages Captured, Interactable Elements, Covered by Tests and Broken Test Locators. Failed lookups (§4.5a): `failed-lookups.jsonl`, `FailedLookup`, `CaptureSink.onCommandFailed`, XML schema 4 with `<failed-lookup>`. Routes carry the host when a run spans several sites (§5.1), and the agent's state key includes the host.
+- **v0.3.1**: Catch-up capture (§4.3): a page state no navigation command saw is captured on the next lookup with new elements, or before `quit`/`close`. `CaptureSink` gains `onSessionEnding`. `snapshotSeq` follows the state the browser is showing, including a return to a captured state.
 - **v0.3.0**: Templates are emitted with `%s` for the dynamic part instead of `{row}`, `{n}` and `{text}`, so they fill with `String.format(xpath, value)`; a literal `%` is written `%%`. `XpathEntry.isTemplate` is decided by strategy, and `absoluteFor(arg)` fills one in. XML schema 3. The named placeholders in §5.9–5.13 describe what `%s` stands for.
 - **v0.2.2**: Cards (§5.13): `{n}` templates for controls in repeated sibling containers. Forms without an id, test id, label or heading get a module XPath from `@name`, `@action` or a class (§5.3).
 - **v0.2.1**: AG Grid adapter (§5.12): `ModuleKind.GRID`, the grid-host module fallback XPath, `^ag-\d+-` added to the dynamic ids, and `row-id`/`row-business-key`/cell `title` stripped by redaction.
