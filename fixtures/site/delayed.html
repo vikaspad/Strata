@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Delayed Start</title>
+</head>
+<body>
+<main>
+  <form id="delayed-form">
+    <button type="button" id="go">Continue</button>
+  </form>
+</main>
+<script>
+  // The click returns first; the navigation starts afterwards, as after an XHR or an async router.
+  document.getElementById('go').addEventListener('click', function () {
+    setTimeout(function () { location.href = '/delayed-end'; }, 300);
+  });
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<locator-coverage schema="3" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="29" total="141">
+<locator-coverage schema="4" run="20261107-120000" generated="2026-11-07T12:01:00Z" used="29" total="141">
   <page name="TradeBlotter" route="/blotter/{id}" visits="3" used="3" total="45">
     <module name="MainNav" kind="NAV" xpath="//nav[@id='main-nav']" used="0" total="3">
       <xpath name="blotterLink" type="LINK" strategy="TEXT" stability="LOW" matches="1" used="false"
