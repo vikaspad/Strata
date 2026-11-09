@@ -4,6 +4,7 @@ import dev.strata.core.model.ElementType
 import dev.strata.core.model.Strategy
 import dev.strata.core.model.XpathEntry
 import org.jsoup.nodes.Element
+import java.util.IdentityHashMap
 
 /** A verified template plus the snapshot elements it stands for (used to mark usage). */
 data class Template(val entry: XpathEntry, val instances: List<Element>)
@@ -16,6 +17,7 @@ data class Template(val entry: XpathEntry, val instances: List<Element>)
  * The named placeholders are only used while building and verifying; emitted entries carry `%s` ([emit]).
  */
 class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
+    private val lookups = IdentityHashMap<Element, HashMap<String, (Int) -> List<Element>>>()
 
     /**
      * @param base the table's path relative to [module]: `.` when the table is the module, else the table entry's value.
@@ -147,10 +149,17 @@ class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
         val doc = module.ownerDocument() ?: return null
         val absolute = DefaultXpathGenerator.absoluteOf(moduleAbsolute, value)
         val last = expected.keys.max()
+        val (head, tail) = splitAtInstance(value, placeholder)
+        val instance = instanceLookup(module, head, placeholder)
         for (i in 1..last) {
             val want = expected[i]?.let { listOf(it) } ?: emptyList()
-            if (verifier.selectWithin(module, value.replace(placeholder, "$i")) != want) return null
-            if (verifier.select(doc, absolute.replace(placeholder, "$i")) != want) return null
+            val anchors = instance(i)
+            val got = if (tail.isEmpty()) anchors else anchors.flatMap { verifier.selectWithin(it, ".$tail") }
+            if (got != want) return null
+        }
+        // The absolute form is the module's verified, unique xpath plus the value just checked, so its ends suffice.
+        for (i in setOf(expected.keys.min(), last)) {
+            if (verifier.select(doc, absolute.replace(placeholder, "$i")) != listOf(expected.getValue(i))) return null
         }
         return Template(
             XpathEntry(name, type, emit(value, placeholder), emit(absolute, placeholder), Strategy.ROW_TEMPLATE,
@@ -173,6 +182,39 @@ class TemplateBuilder(private val verifier: JsoupXpathVerifier) {
         val absolute = DefaultXpathGenerator.absoluteOf(moduleAbsolute, value)
         if (verifier.select(doc, absolute) != listOf(el)) return null
         return Template(XpathEntry(name, type, value, absolute, strategy, matches = 1), listOf(el))
+    }
+
+    /**
+     * What [head] selects for instance `i`, shared by all templates of one table or grid. The two common forms are
+     * read off a single evaluation of the path without the predicate, which is exact because a `[n]` predicate indexes
+     * one list only when there is one parent (or the path is parenthesized). Anything else is evaluated per instance.
+     */
+    private fun instanceLookup(module: Element, head: String, placeholder: String): (Int) -> List<Element> =
+        lookups.getOrPut(module) { HashMap() }.getOrPut(head) {
+            val perInstance = { i: Int -> verifier.selectWithin(module, head.replace(placeholder, "$i")) }
+            val position = "[$placeholder]"
+            val rowIndex = "[@row-index=$placeholder-1]"
+            when {
+                head.endsWith(position) -> {
+                    val path = head.removeSuffix(position)
+                    val all = verifier.selectWithin(module, path)
+                    val oneList = path.startsWith("(") && path.endsWith(")") ||
+                        all.map { System.identityHashCode(it.parent()) }.distinct().size <= 1
+                    if (oneList) { i -> listOfNotNull(all.getOrNull(i - 1)) } else perInstance
+                }
+                head.endsWith(rowIndex) -> {
+                    val byIndex = verifier.selectWithin(module, head.removeSuffix(rowIndex)).groupBy { it.attr("row-index").toIntOrNull() }
+                    ({ i -> byIndex[i - 1].orEmpty() })
+                }
+                else -> perInstance
+            }
+        }
+
+    /** Splits after the predicate holding [placeholder]: the path to the row, then the path from the row. */
+    private fun splitAtInstance(value: String, placeholder: String): Pair<String, String> {
+        val close = value.indexOf(']', value.indexOf(placeholder) + placeholder.length)
+        val tail = if (close < 0) "" else value.substring(close + 1)
+        return if (tail.isEmpty() || !tail.startsWith("/")) value to "" else value.substring(0, close + 1) to tail
     }
 
     private fun sameElements(a: List<Element>, b: List<Element>): Boolean =

@@ -16,6 +16,10 @@ import java.util.IdentityHashMap
  */
 class CardTemplates(private val verifier: JsoupXpathVerifier) {
     private val builder = TemplateBuilder(verifier)
+    private val bulkCards = IdentityHashMap<Element, Unit>()
+
+    /** True inside a templated run of records, where content repeats per record and can have no unique entry of its own. */
+    fun inBulkCard(el: Element): Boolean = bulkCards.isNotEmpty() && el.parents().any { bulkCards.containsKey(it) }
 
     /** Cards of one group, all in [module], in document order. */
     class Group(val module: Element, val cards: List<Element>)
@@ -36,6 +40,7 @@ class CardTemplates(private val verifier: JsoupXpathVerifier) {
         for (group in groups(body, moduleOf, isModule, eligible)) {
             val absolute = moduleAbsolute(group.module) ?: continue
             val cards = cardsTemplate(group, absolute) ?: continue
+            if (isBulk(group.cards)) group.cards.forEach { bulkCards[it] = Unit }
             cardEntry(group, absolute, cards)?.let { out += group.module to it }
             out += controls(group, absolute, cards, moduleOf, eligible, used).map { group.module to it }
         }
@@ -57,24 +62,37 @@ class CardTemplates(private val verifier: JsoupXpathVerifier) {
             val siblings = parent.children().filter { !Interactables.isHidden(it) && !isModule(it) }
             for ((signature, members) in siblings.groupBy { signature(it) }) {
                 if (signature == null || members.size < 2) continue
-                if (members.any { card -> Interactables.find(card).isEmpty() }) continue
+                val interactive = members.count { card -> Interactables.find(card).isNotEmpty() }
+                // A header row sits among the data rows and may hold no control.
+                if (interactive == 0 || (interactive < members.size && !members.all(::isRow))) continue
                 val key = Triple(ModuleKey(moduleOf(members.first())), signature(parent) ?: parent.normalName(), signature)
                 byKey.getOrPut(key) { mutableListOf() } += members
             }
         }
         val qualified = byKey.map { (key, cards) -> Group(key.first.el, cards) }
-            .filter { group -> sharedLabels(group.cards, eligible).isNotEmpty() }
+            .filter { group -> isBulk(group.cards) || sharedLabels(group.cards, eligible).isNotEmpty() }
         // A group whose cards contain another group's cards (a carousel slide holding tiles) yields to the inner one.
-        return qualified.filter { outer ->
-            qualified.none { inner -> inner !== outer && inner.cards.any { c -> outer.cards.any { o -> c.parents().contains(o) } } }
-        }
+        val hasInnerGroup = IdentityHashMap<Element, Unit>()
+        for (inner in qualified) for (card in inner.cards) for (ancestor in card.parents()) hasInnerGroup[ancestor] = Unit
+        return qualified.filter { outer -> outer.cards.none { hasInnerGroup.containsKey(it) } }
     }
+
+    /**
+     * Rows of a non-`table` grid, or a long run of identical siblings: repetition alone says these are records,
+     * so they need no shared label. Cells of a row are not records.
+     */
+    private fun isBulk(cards: List<Element>): Boolean =
+        cards.first().parent()?.let(::isRow) != true && (cards.all(::isRow) || cards.size >= BULK_SIBLINGS)
+
+    private fun isRow(el: Element): Boolean = el.attr("role").equals("row", ignoreCase = true)
 
     /** `<parent>/<card>[{n}]`, or `(<cards>)[{n}]` when the cards have several parents or no locatable one. */
     private fun cardsTemplate(group: Group, moduleAbsolute: String): String? {
         val cards = group.cards
         val tag = DefaultXpathGenerator.step(cards.first())
-        val cardSteps = sharedClasses(cards).map { "$tag[${hasClass(it)}]" } + tag
+        val cardRole = cards.map { it.attr("role") }.distinct().singleOrNull()?.takeIf { it.isNotBlank() }
+        val cardSteps = sharedClasses(cards).map { "$tag[${hasClass(it)}]" } + tag +
+            listOfNotNull(cardRole?.let { "$tag[@role=${xpathLiteral(it)}]" })
         val parents = cards.mapNotNull { it.parent() }.distinctBy { System.identityHashCode(it) }
         val single = parents.singleOrNull()
         val parentSteps = mutableListOf<String>()
@@ -86,6 +104,16 @@ class CardTemplates(private val verifier: JsoupXpathVerifier) {
             if (DynamicIds.isStable(single.id())) parentSteps += ".//$parentTag[@id=${xpathLiteral(single.id())}]"
         }
         sharedClasses(parents).forEach { parentSteps += ".//$parentTag[${hasClass(it)}]" }
+        if (single != null) {
+            single.attr("aria-label").takeIf { it.isNotBlank() && !DynamicIds.isDynamic(it) }
+                ?.let { parentSteps += ".//$parentTag[@aria-label=${xpathLiteral(it)}]" }
+            single.attr("role").takeIf { it.isNotBlank() }?.let { parentSteps += ".//$parentTag[@role=${xpathLiteral(it)}]" }
+            // Last resort for a long run under an unlabelled parent: one LOW template still beats a positional entry per row.
+            if (isBulk(cards)) {
+                val nth = group.module.select(single.normalName()).filter { it !== group.module }.indexOfFirst { it === single } + 1
+                if (nth > 0) parentSteps += "(.//$parentTag)[$nth]"
+            }
+        }
 
         val options = mutableListOf<Pair<String, String>>()
         for (p in parentSteps) for (c in cardSteps) {
@@ -232,6 +260,9 @@ class CardTemplates(private val verifier: JsoupXpathVerifier) {
     private fun same(a: List<Element>, b: List<Element>): Boolean = a.size == b.size && a.zip(b).all { (x, y) -> x === y }
 
     private companion object {
+        /** Below this, siblings whose labels all differ are read as a menu and keep their own named entries. */
+        const val BULK_SIBLINGS = 20
+
         /** Structures with templates of their own (§5.9, §5.12) and elements that are never containers. */
         val NOT_CARD_PARENTS = setOf("table", "thead", "tbody", "tfoot", "tr", "select", "datalist", "svg", "head")
         val NOT_CARDS = setOf("script", "style", "option", "tr", "td", "th", "a", "button", "input", "select", "textarea", "label")

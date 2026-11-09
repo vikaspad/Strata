@@ -60,7 +60,8 @@ class SnapshotAnalyzer(private val log: (String) -> Unit = {}) {
             if (Interactables.isHidden(el) || insideSvg(el) || AgGrid.handledByAdapter(el) || resolved.containsKey(el)) return null
             return if (handledByTemplate(el, type) && type != ElementType.LIST_ITEM) null else type
         }
-        val cards = CardTemplates(verifier).build(body, ::moduleOf, { resolved[it]?.xpath }, { resolved.containsKey(it) },
+        val cardTemplates = CardTemplates(verifier)
+        val cards = cardTemplates.build(body, ::moduleOf, { resolved[it]?.xpath }, { resolved.containsKey(it) },
             ::eligible) { usedSet.containsKey(it) }
         for ((module, t) in cards) add(module, t.entry, t.instances)
 
@@ -73,6 +74,10 @@ class SnapshotAnalyzer(private val log: (String) -> Unit = {}) {
             if (resolved.containsKey(el) && Interactables.isContentTag(el)) continue
             val module = moduleOf(el)
             if (Interactables.isContent(type)) {
+                if (!usedSet.containsKey(el) && cardTemplates.inBulkCard(el)) {
+                    omitted.merge(type, 1, Int::plus)
+                    continue
+                }
                 val entry = generator.generate(el, module, allowPositional = false, type = type)
                     ?: if (usedSet.contains(el)) generator.generate(el, module, allowPositional = true, type = type) else null
                 if (entry == null) {

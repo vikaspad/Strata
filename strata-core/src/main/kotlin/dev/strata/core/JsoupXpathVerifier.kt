@@ -1,30 +1,27 @@
 package dev.strata.core
 
+import org.jaxen.JaxenException
+import org.jaxen.dom.DOMXPath
 import org.jsoup.helper.W3CDom
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.util.IdentityHashMap
-import javax.xml.xpath.XPathConstants
-import javax.xml.xpath.XPathExpressionException
-import javax.xml.xpath.XPathFactory
 
 /**
- * Evaluates XPath 1.0 with the same W3C conversion Jsoup's `selectXpath` uses, but converts each snapshot
- * once instead of once per query. Malformed or non-matching expressions count as 0.
+ * Evaluates XPath 1.0 over one W3C conversion of each snapshot. Jaxen navigates the DOM directly; the JDK evaluator
+ * walks the document on every call, which made verifying a 1000-row grid take minutes (CLAUDE.md §5.9).
+ * Malformed or non-matching expressions count as 0. Not thread-safe: one verifier per snapshot analysis.
  */
 class JsoupXpathVerifier : XpathVerifier {
     private val converted = IdentityHashMap<Document, Converted>()
-    private val xpath = XPathFactory.newInstance().newXPath()
+    private val compiled = HashMap<String, DOMXPath?>()
 
     private class Converted(val w3c: org.w3c.dom.Document, val nodes: Map<Element, org.w3c.dom.Node>)
 
     override fun count(doc: Document, xpath: String): Int = select(doc, xpath).size
 
     /** Elements of [doc] matched by an absolute [xpath]. */
-    fun select(doc: Document, xpath: String): List<Element> {
-        val c = convert(doc)
-        return evaluate(xpath, c.w3c)
-    }
+    fun select(doc: Document, xpath: String): List<Element> = evaluate(xpath, convert(doc).w3c)
 
     /** Elements matched by [relative] evaluated with [context] as the context node. */
     fun selectWithin(context: Element, relative: String): List<Element> {
@@ -36,16 +33,19 @@ class JsoupXpathVerifier : XpathVerifier {
     fun countWithin(context: Element, relative: String): Int = selectWithin(context, relative).size
 
     private fun evaluate(expression: String, contextNode: org.w3c.dom.Node): List<Element> {
-        val nodeList = try {
-            xpath.evaluate(expression, contextNode, XPathConstants.NODESET) as org.w3c.dom.NodeList
-        } catch (_: XPathExpressionException) {
-            return emptyList()
-        } catch (_: ClassCastException) {
+        val path = compiled.getOrPut(expression) {
+            try {
+                DOMXPath(expression)
+            } catch (_: JaxenException) {
+                null
+            }
+        } ?: return emptyList()
+        val nodes = try {
+            path.selectNodes(contextNode)
+        } catch (_: JaxenException) {
             return emptyList()
         }
-        return (0 until nodeList.length).mapNotNull { i ->
-            nodeList.item(i).getUserData(W3CDom.SourceProperty) as? Element
-        }
+        return nodes.mapNotNull { (it as? org.w3c.dom.Node)?.getUserData(W3CDom.SourceProperty) as? Element }
     }
 
     private fun convert(doc: Document): Converted = converted.getOrPut(doc) {

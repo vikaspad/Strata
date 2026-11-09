@@ -30,6 +30,8 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
     api("org.jsoup:jsoup:1.18.3")
+    // XPath over the W3C DOM without the JDK evaluator's per-call document walk (CLAUDE.md §5.9).
+    implementation("jaxen:jaxen:2.0.0")
     implementation(kotlin("stdlib"))
 
     testImplementation(kotlin("test"))
