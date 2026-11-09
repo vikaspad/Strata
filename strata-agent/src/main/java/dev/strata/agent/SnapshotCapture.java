@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
@@ -36,8 +37,13 @@ final class SnapshotCapture implements CaptureSink {
     }
 
     static final class SessionState {
-        final Set<String> captured = new HashSet<>();
+        /** (routeKey, containerHash) of every captured state, with the seq of its snapshot. */
+        final Map<String, Integer> captured = new HashMap<>();
         final Set<String> seenElements = new HashSet<>();
+        /** using + value of every locator that found at least one element in this session. */
+        final Set<String> foundLocators = new HashSet<>();
+        /** using + value of every locator with a recorded failure and no success since. */
+        final Set<String> failedLocators = new HashSet<>();
         String lastRouteKey;
         String lastDocumentUrl;
         int lastSeq;
@@ -58,6 +64,11 @@ final class SnapshotCapture implements CaptureSink {
         final List<String> outcomes = new ArrayList<>(2);
         synchronized (session) {
             if (Dispatcher.LOOKUPS.contains(command)) {
+                usage.onLookupFound(sessionId, session, command, parameters, result);
+                // Before recording usage: the elements must resolve in a snapshot of the page they came from.
+                if (usage.bringsNewElements(session, result)) {
+                    addIfPresent(outcomes, catchUp(driver, sessionId, session));
+                }
                 addIfPresent(outcomes, usage.onLookup(driver, sessionId, session, command, parameters, result));
             }
             if (Dispatcher.INTERACTIONS.contains(command)) {
@@ -73,6 +84,103 @@ final class SnapshotCapture implements CaptureSink {
             output.log().info(command + " -> " + String.join("; ", outcomes)
                     + " (" + (System.nanoTime() - started) / 1_000_000 + " ms)");
         }
+    }
+
+    @Override
+    public void onCommandFailed(
+            final Object driver, final String command, final Map<String, ?> parameters, final Throwable thrown) {
+        if (!output.usable()) {
+            return;
+        }
+        final String sessionId = sessionId(driver);
+        if (sessionId == null) {
+            return;
+        }
+        final SessionState session = sessions.computeIfAbsent(sessionId, k -> new SessionState());
+        final long started = System.nanoTime();
+        final String outcome;
+        synchronized (session) {
+            outcome = usage.onLookupFailed(sessionId, session, command, parameters, thrown,
+                    () -> currentUrl(driver, session));
+        }
+        if (outcome != null) {
+            output.log().info(command + " -> " + outcome + " (" + (System.nanoTime() - started) / 1_000_000 + " ms)");
+        }
+    }
+
+    /**
+     * The URL the browser is showing. Deliberately no catch-up capture: a failed lookup is often a wait polling a
+     * page that is still rendering, and capturing that state would stop the finished page from being captured.
+     */
+    private String currentUrl(final Object driver, final SessionState session) {
+        try {
+            if (call(driver, "executeScript", Scripts.PROBE) instanceof Map<?, ?> probe
+                    && !Boolean.TRUE.equals(probe.get("crossOrigin")) && !string(probe.get("url")).isEmpty()) {
+                return RouteKeys.stripQuery(string(probe.get("url")));
+            }
+        } catch (RuntimeException e) {
+            output.log().error("could not read the URL of a failed lookup", e);
+        }
+        return session.lastDocumentUrl == null ? "" : session.lastDocumentUrl;
+    }
+
+    @Override
+    public void onSessionEnding(final Object driver, final String command) {
+        if (!output.usable()) {
+            return;
+        }
+        final String sessionId = sessionId(driver);
+        if (sessionId == null) {
+            return;
+        }
+        final SessionState session = sessions.computeIfAbsent(sessionId, k -> new SessionState());
+        final long started = System.nanoTime();
+        final String outcome;
+        synchronized (session) {
+            outcome = catchUp(driver, sessionId, session);
+        }
+        if (outcome != null) {
+            output.log().info(command + " -> " + outcome + " (" + (System.nanoTime() - started) / 1_000_000 + " ms)");
+        }
+    }
+
+    /**
+     * Captures a page state no navigation command saw, such as a click whose navigation started after the click
+     * returned (§4.3). Returns {@code null} when the state is already captured. Never throws, so a failure here
+     * cannot lose the usage recorded next.
+     */
+    private String catchUp(final Object driver, final String sessionId, final SessionState session) {
+        try {
+            if (!(call(driver, "executeScript", Scripts.PROBE) instanceof Map<?, ?> first)
+                    || Boolean.TRUE.equals(first.get("crossOrigin"))) {
+                return null;
+            }
+            final String url = string(first.get("url"));
+            if (url.startsWith("about:") || url.startsWith("data:")) {
+                return null;
+            }
+            final String key = key(first);
+            if (session.captured.containsKey(key)) {
+                markCurrent(session, key, first);
+                return null;
+            }
+            return settleAndCapture(driver, sessionId, session, "CLICK", Boolean.TRUE.equals(first.get("leaving")));
+        } catch (RuntimeException e) {
+            output.log().error("catch-up capture failed", e);
+            return "catch-up failed";
+        }
+    }
+
+    /** The browser is showing this captured state: later usage resolves in its snapshot. */
+    private static void markCurrent(final SessionState session, final String key, final Map<?, ?> probe) {
+        final String url = RouteKeys.stripQuery(string(probe.get("url")));
+        session.lastSeq = session.captured.get(key);
+        session.lastRouteKey = RouteKeys.normalize(url);
+        session.lastDocumentUrl = documentUrl(url);
+    }
+
+    private static String documentUrl(final String url) {
+        return url.contains("#") ? url.substring(0, url.indexOf('#')) : url;
     }
 
     private static void addIfPresent(final List<String> outcomes, final String outcome) {
@@ -93,18 +201,29 @@ final class SnapshotCapture implements CaptureSink {
         // in the middle of navigating away needs no wait.
         final boolean quiet = Boolean.TRUE.equals(first.get("fresh")) || number(first.get("quietFor")) >= quietMs;
         final boolean leaving = Boolean.TRUE.equals(first.get("leaving"));
-        if (session.captured.contains(key(first)) && "complete".equals(first.get("ready")) && quiet && !leaving) {
+        if (session.captured.containsKey(key(first)) && "complete".equals(first.get("ready")) && quiet && !leaving) {
+            markCurrent(session, key(first), first);
             return "unchanged " + routeKey(first) + ", no wait";
         }
+        return settleAndCapture(driver, sessionId, session, trigger, leaving);
+    }
+
+    private String settleAndCapture(
+            final Object driver,
+            final String sessionId,
+            final SessionState session,
+            final String trigger,
+            final boolean leaving) {
         if (!(settle(driver, leaving) instanceof Map<?, ?> probe)) {
             return "settle script returned no probe";
         }
         final String url = RouteKeys.stripQuery(string(probe.get("url")));
         final String routeKey = RouteKeys.normalize(url);
         final String containerHash = containerHash(probe.get("ids"));
-        final String documentUrl = url.contains("#") ? url.substring(0, url.indexOf('#')) : url;
-        final String key = routeKey + '\n' + containerHash;
-        if (session.captured.contains(key)) {
+        final String documentUrl = documentUrl(url);
+        final String key = key(probe);
+        if (session.captured.containsKey(key)) {
+            markCurrent(session, key, probe);
             return "unchanged " + routeKey + ", settle " + number(probe.get("settleMs")) + " ms";
         }
         final boolean sameDocument = routeKey.equals(session.lastRouteKey) && documentUrl.equals(session.lastDocumentUrl);
@@ -147,10 +266,8 @@ final class SnapshotCapture implements CaptureSink {
             output.log().error("could not write snapshot " + domFile, e);
             return "write failed";
         }
-        session.captured.add(key);
-        session.lastRouteKey = routeKey;
-        session.lastDocumentUrl = documentUrl;
-        session.lastSeq = seq;
+        session.captured.put(key, seq);
+        markCurrent(session, key, probe);
         return "captured seq " + seq + " " + effectiveTrigger + " " + routeKey + ", settle "
                 + number(probe.get("settleMs")) + " ms" + (frames.isEmpty() ? "" : ", " + frames.size() + " frame(s)");
     }
@@ -171,7 +288,8 @@ final class SnapshotCapture implements CaptureSink {
     }
 
     private static String key(final Map<?, ?> probe) {
-        return routeKey(probe) + '\n' + containerHash(probe.get("ids"));
+        // The host is part of the state: two sites can share a route and an empty container hash.
+        return RouteKeys.host(string(probe.get("url"))) + '\n' + routeKey(probe) + '\n' + containerHash(probe.get("ids"));
     }
 
     private static String routeKey(final Map<?, ?> probe) {

@@ -83,6 +83,74 @@ class AgentUnitTest {
     }
 
     @Test
+    void failedLookupLineHasContractFieldOrder() {
+        final String line = Json.failedLookupRecord(new Json.FailedLookupLine("s1", "http://h/a", "/a", "findElement",
+                "css selector", "#x", "NOT_FOUND", "2026-11-08T12:00:00.000Z"));
+        assertEquals("{\"sessionId\":\"s1\",\"url\":\"http://h/a\",\"routeKey\":\"/a\",\"command\":\"findElement\","
+                + "\"locatorUsing\":\"css selector\",\"locatorValue\":\"#x\",\"outcome\":\"NOT_FOUND\","
+                + "\"recordedAt\":\"2026-11-08T12:00:00.000Z\"}", line);
+    }
+
+    /** Named like Selenium's classes: the agent matches by simple name so it needs no link to them. */
+    static class NoSuchElementException extends RuntimeException {
+    }
+
+    static class InvalidSelectorException extends NoSuchElementException {
+    }
+
+    static class SubclassOfNoSuchElement extends NoSuchElementException {
+    }
+
+    @Test
+    void onlyLocatorFailuresCount() {
+        assertEquals("NOT_FOUND", UsageTracker.outcomeOf(new NoSuchElementException()));
+        assertEquals("NOT_FOUND", UsageTracker.outcomeOf(new SubclassOfNoSuchElement()));
+        assertEquals("INVALID_SELECTOR", UsageTracker.outcomeOf(new InvalidSelectorException()));
+        assertNull(UsageTracker.outcomeOf(new IllegalStateException("session gone")));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "https://www.SauceDemo.com/a?x=1, www.saucedemo.com",
+            "http://127.0.0.1:8080/a, 127.0.0.1:8080",
+            "http://u:p@h/a, h",
+            "https://h, h",
+            "https://h?x=1, h",
+    })
+    void hostOfUrl(final String url, final String expected) {
+        assertEquals(expected, RouteKeys.host(url));
+    }
+
+    @Test
+    void hostIsEmptyWithoutScheme() {
+        assertEquals("", RouteKeys.host("about:blank"));
+    }
+
+    @Test
+    void failedLookupsAreDispatchedOnlyForLookupsAndSwallowFailures() {
+        final List<String> seen = new java.util.ArrayList<>();
+        Dispatcher.install(new CaptureSink() {
+            @Override
+            public void onCommandCompleted(
+                    final Object driver, final String command, final Map<String, ?> parameters, final Object result) {
+            }
+
+            @Override
+            public void onCommandFailed(
+                    final Object driver, final String command, final Map<String, ?> parameters, final Throwable thrown) {
+                seen.add(command);
+                Dispatcher.onCommandFailed(driver, "findElements", Map.of(), thrown); // re-entrant: must be ignored
+                throw new IllegalStateException("boom");
+            }
+        }, new AgentLog(java.nio.file.Path.of(System.getProperty("java.io.tmpdir"), "strata-unit-agent.log")));
+        final RuntimeException failure = new NoSuchElementException();
+        Dispatcher.onCommandFailed(new Object(), "findElement", Map.of(), failure);
+        Dispatcher.onCommandFailed(new Object(), "clickElement", Map.of(), failure);
+        assertEquals(List.of("findElement"), seen);
+        Dispatcher.install(null, null);
+    }
+
+    @Test
     void containerHashIgnoresDynamicIdsButKeepsOverlays() {
         assertEquals(SnapshotCapture.containerHash(List.of("a")), SnapshotCapture.containerHash(List.of("a", "mat-input-7", "ps-7731")));
         assertNotEquals(SnapshotCapture.containerHash(List.of("a")), SnapshotCapture.containerHash(List.of("a", "overlay:div:listbox:")));
@@ -108,6 +176,30 @@ class AgentUnitTest {
         Dispatcher.onCommandCompleted(new Object(), "findElement", Map.of(), null);
         Dispatcher.onCommandCompleted(new Object(), "executeScript", Map.of(), null);
         assertEquals(2, calls[0]);
+        Dispatcher.install(null, null);
+    }
+
+    @Test
+    void sessionEndingFiresOnlyForQuitAndCloseAndSwallowsFailures() {
+        final java.util.List<String> seen = new java.util.ArrayList<>();
+        Dispatcher.install(new CaptureSink() {
+            @Override
+            public void onCommandCompleted(
+                    final Object driver, final String command, final Map<String, ?> parameters, final Object result) {
+            }
+
+            @Override
+            public void onSessionEnding(final Object driver, final String command) {
+                seen.add(command);
+                Dispatcher.onCommandStarting(driver, "close"); // re-entrant: must be ignored
+                throw new IllegalStateException("boom");
+            }
+        }, new AgentLog(java.nio.file.Path.of(System.getProperty("java.io.tmpdir"), "strata-unit-agent.log")));
+        Dispatcher.onCommandStarting(new Object(), "quit");
+        Dispatcher.onCommandStarting(new Object(), "close");
+        Dispatcher.onCommandStarting(new Object(), "get");
+        Dispatcher.onCommandStarting(new Object(), null);
+        assertEquals(List.of("quit", "close"), seen);
         Dispatcher.install(null, null);
     }
 }

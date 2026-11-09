@@ -2,6 +2,7 @@ package dev.strata.agent.it;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpServer;
@@ -14,6 +15,7 @@ import dev.strata.core.model.LocatorCoverageRun;
 import dev.strata.core.model.ModuleModel;
 import dev.strata.core.model.PageModel;
 import dev.strata.core.model.SnapshotRecord;
+import dev.strata.core.model.UsageRecord;
 import dev.strata.core.model.XpathEntry;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,6 +34,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
+import org.openqa.selenium.InvalidSelectorException;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -209,6 +213,96 @@ class FixtureFlowIT {
                 .anyMatch(x -> x.getType().name().equals("ICON") && x.getUsed()), "icon not used");
         verifyAllXpaths(out, run, ManifestReader.INSTANCE.read(out.resolve("manifest.jsonl"), m -> kotlin.Unit.INSTANCE));
         verifyOverheadBudget(out);
+    }
+
+    /** §4.3: the last page is reached by a navigation that starts after the click returned; a lookup finds it. */
+    @Test
+    void delayedNavigationCapturedOnLookup() throws IOException {
+        final ChromeDriver driver = headless();
+        final String sessionId = driver.getSessionId().toString();
+        try {
+            final WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            driver.get(base + "/delayed");
+            driver.findElement(By.id("go")).click();
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("target")));
+            driver.findElement(By.id("again")).click();                            // back to a captured state
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("go")));
+        } finally {
+            driver.quit();
+        }
+        if (!Boolean.getBoolean("strata.it.expectCapture")) {
+            return;
+        }
+        final Path out = Path.of(System.getProperty("strata.out"));
+        final List<SnapshotRecord> records = records(out, sessionId);
+        assertEquals(List.of("GET", "CLICK"), records.stream().map(r -> r.getTrigger().name()).collect(Collectors.toList()));
+        assertEquals(List.of("/delayed", "/delayed-end"),
+                records.stream().map(SnapshotRecord::getRouteKey).collect(Collectors.toList()));
+
+        final List<UsageRecord> usage = ManifestReader.INSTANCE.readUsage(out.resolve("usage.jsonl"), m -> kotlin.Unit.INSTANCE)
+                .stream().filter(u -> u.getSessionId().equals(sessionId)).collect(Collectors.toList());
+        final UsageRecord target = usage.stream().filter(u -> "target".equals(u.getLocatorValue())).findFirst().orElseThrow();
+        assertEquals(records.get(1).getSeq(), target.getSnapshotSeq(), "usage resolved in the wrong snapshot");
+        assertEquals("/delayed-end", target.getRouteKey());
+        final UsageRecord returned = usage.stream().filter(u -> "go".equals(u.getLocatorValue()))
+                .reduce((first, second) -> second).orElseThrow();
+        assertEquals(records.get(0).getSeq(), returned.getSnapshotSeq(), "return to a captured state");
+
+        final LocatorCoverageRun run = StrataGenerator.INSTANCE.generate(out);
+        assertTrue(used(page(run, "/delayed-end"), "//form[@id='delayed-end-form']//button[@id='target']"), "target not used");
+    }
+
+    /** §4.3: the test ends on a URL wait, so no lookup ever runs on the last page; {@code quit} finds it. */
+    @Test
+    void delayedNavigationCapturedBeforeQuit() {
+        final ChromeDriver driver = headless();
+        final String sessionId = driver.getSessionId().toString();
+        try {
+            driver.get(base + "/delayed");
+            driver.findElement(By.id("go")).click();
+            new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.urlContains("/delayed-end"));
+        } finally {
+            driver.quit();
+        }
+        if (!Boolean.getBoolean("strata.it.expectCapture")) {
+            return;
+        }
+        assertEquals(List.of("/delayed", "/delayed-end"), records(Path.of(System.getProperty("strata.out")), sessionId)
+                .stream().map(SnapshotRecord::getRouteKey).collect(Collectors.toList()));
+    }
+
+    /** §4.5a: a failing locator is reported, the exception still reaches the test, and a wait that recovers is not. */
+    @Test
+    void failedLookupsAreRecordedAndStillThrow() throws IOException {
+        final ChromeDriver driver = headless();
+        final String missing = "strata-it-missing";
+        final String late = "strata-it-late";
+        try {
+            driver.get(base + "/login");
+            assertThrows(NoSuchElementException.class, () -> driver.findElement(By.id(missing)));
+            assertThrows(NoSuchElementException.class, () -> driver.findElement(By.id(missing)));
+            assertThrows(InvalidSelectorException.class, () -> driver.findElement(By.xpath("//[strata-it-bad")));
+            assertThrows(NoSuchElementException.class, () -> driver.findElement(By.id(late)));
+            driver.executeScript("var d = document.createElement('div'); d.id = arguments[0]; document.body.appendChild(d);", late);
+            driver.findElement(By.id(late));
+        } finally {
+            driver.quit();
+        }
+        if (!Boolean.getBoolean("strata.it.expectCapture")) {
+            return;
+        }
+        final LocatorCoverageRun run = StrataGenerator.INSTANCE.generate(Path.of(System.getProperty("strata.out")));
+        final List<String> found = run.getFailedLookups().stream()
+                .filter(f -> f.getLocator().contains("strata-it"))
+                .map(f -> f.getReason().name()).sorted().collect(Collectors.toList());
+        assertEquals(List.of("INVALID_SELECTOR", "NOT_FOUND"), found, run.getFailedLookups().toString());
+        assertTrue(run.getFailedLookups().stream().filter(f -> f.getLocator().contains(missing))
+                .allMatch(f -> f.getRouteKey().equals("/login")), run.getFailedLookups().toString());
+    }
+
+    private static ChromeDriver headless() {
+        return new ChromeDriver(new ChromeOptions()
+                .addArguments("--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1280,900"));
     }
 
     @Test

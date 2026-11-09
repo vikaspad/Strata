@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class AgentOutput {
     static final String MANIFEST = "manifest.jsonl";
     static final String USAGE = "usage.jsonl";
+    static final String FAILED_LOOKUPS = "failed-lookups.jsonl";
 
     private final Path dir;
     private final AgentLog log;
@@ -72,6 +73,10 @@ final class AgentOutput {
 
     void appendManifest(final String jsonLine) throws IOException {
         append(MANIFEST, jsonLine);
+    }
+
+    void appendFailedLookup(final String jsonLine) throws IOException {
+        append(FAILED_LOOKUPS, jsonLine);
     }
 
     void appendUsage(final String jsonLine) throws IOException {

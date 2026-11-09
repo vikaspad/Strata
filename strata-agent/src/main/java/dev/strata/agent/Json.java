@@ -104,6 +104,30 @@ final class Json {
                 + "}";
     }
 
+    /** One FailedLookupRecord; field names and order are fixed by CLAUDE.md §3.1. */
+    static String failedLookupRecord(final FailedLookupLine f) {
+        return "{\"sessionId\":" + quote(f.sessionId())
+                + ",\"url\":" + quote(f.url())
+                + ",\"routeKey\":" + quote(f.routeKey())
+                + ",\"command\":" + quote(f.command())
+                + ",\"locatorUsing\":" + quote(f.locatorUsing())
+                + ",\"locatorValue\":" + quote(f.locatorValue())
+                + ",\"outcome\":" + quote(f.outcome())
+                + ",\"recordedAt\":" + quote(f.recordedAt())
+                + "}";
+    }
+
+    record FailedLookupLine(
+            String sessionId,
+            String url,
+            String routeKey,
+            String command,
+            String locatorUsing,
+            String locatorValue,
+            String outcome,
+            String recordedAt) {
+    }
+
     record SnapshotLine(
             int seq,
             String sessionId,

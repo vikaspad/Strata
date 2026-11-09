@@ -16,6 +16,8 @@ public final class Dispatcher {
             "isElementEnabled", "getElementTagName", "getElementRect", "getElementValueOfCssProperty",
             "getElementAriaRole", "getElementAccessibleName");
 
+    static final Set<String> SESSION_ENDING = Set.of("quit", "close");
+
     private static final ThreadLocal<Boolean> IN_CAPTURE = ThreadLocal.withInitial(() -> Boolean.FALSE);
     private static volatile CaptureSink sink;
     private static volatile AgentLog log;
@@ -45,6 +47,44 @@ public final class Dispatcher {
             final AgentLog l = log;
             if (l != null) {
                 l.error("capture failed after '" + command + "'", t);
+            }
+        } finally {
+            IN_CAPTURE.set(Boolean.FALSE);
+        }
+    }
+
+    /** A command threw. Only lookups matter here; the throwable reaches the test whatever happens in this method. */
+    public static void onCommandFailed(
+            final Object driver, final String command, final Map<String, ?> parameters, final Throwable thrown) {
+        final CaptureSink current = sink;
+        if (current == null || command == null || !LOOKUPS.contains(command) || IN_CAPTURE.get()) {
+            return;
+        }
+        IN_CAPTURE.set(Boolean.TRUE);
+        try {
+            current.onCommandFailed(driver, command, parameters == null ? Map.of() : parameters, thrown);
+        } catch (Throwable t) {
+            final AgentLog l = log;
+            if (l != null) {
+                l.error("capture failed after failed '" + command + "'", t);
+            }
+        } finally {
+            IN_CAPTURE.set(Boolean.FALSE);
+        }
+    }
+
+    public static void onCommandStarting(final Object driver, final String command) {
+        final CaptureSink current = sink;
+        if (current == null || command == null || !SESSION_ENDING.contains(command) || IN_CAPTURE.get()) {
+            return;
+        }
+        IN_CAPTURE.set(Boolean.TRUE);
+        try {
+            current.onSessionEnding(driver, command);
+        } catch (Throwable t) {
+            final AgentLog l = log;
+            if (l != null) {
+                l.error("capture failed before '" + command + "'", t);
             }
         } finally {
             IN_CAPTURE.set(Boolean.FALSE);

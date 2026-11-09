@@ -39,6 +39,16 @@ public final class RouteKeys {
         return safe.isEmpty() ? "root" : safe;
     }
 
+    /** Lower-case {@code host[:port]} of a URL, or empty if it has no scheme. */
+    public static String host(final String url) {
+        final int scheme = url.indexOf("://");
+        if (scheme < 0) {
+            return "";
+        }
+        final String authority = cut(cut(cut(url.substring(scheme + 3), '/'), '?'), '#');
+        return authority.substring(authority.lastIndexOf('@') + 1).toLowerCase(java.util.Locale.ROOT);
+    }
+
     /** The raw URL with its query string removed; the fragment is kept. */
     public static String stripQuery(final String url) {
         final int q = url.indexOf('?');
