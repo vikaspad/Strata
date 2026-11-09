@@ -59,6 +59,16 @@ class AgentPatcherTest : BasePlatformTestCase() {
         assertEquals(Path.of(out), config.getUserData(AgentPatcher.RUN_DIR))
     }
 
+    fun testRunnerAttachesAgentOnce() {
+        val p = params("21.0.9")
+        val config = config()
+        val runner = LocatorCoverageRunner()
+        runner.patch(p, null, config, true)
+        runner.patch(p, null, config, true)
+        assertEquals(1, p.vmParametersList.list.count { it.startsWith("-javaagent:") })
+        assertEquals(Path.of(p.vmParametersList.getPropertyValue("strata.out")!!), config.getUserData(AgentPatcher.RUN_DIR))
+    }
+
     fun testAcceptsJava17() {
         val p = params("17.0.1")
         AgentPatcher().patchJavaParameters(strataExecutor, config(), p)

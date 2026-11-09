@@ -3,6 +3,7 @@ package dev.strata.plugin
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -12,6 +13,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import dev.strata.core.DefaultCoverageXmlWriter
 import dev.strata.core.StrataGenerator
+import dev.strata.core.model.LocatorCoverageRun
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -37,6 +39,7 @@ class PostRunHandler(private val project: Project, private val runDir: Path) : P
                     StrataNotifications.warning(project, "No snapshots were captured. See ${runDir.resolve("agent.log")}")
                     return
                 }
+                project.service<CoverageState>().publish(generated.run)
                 val xml = publish(generated.xml) ?: return
                 StrataNotifications.generated(project, generated.pages, generated.elements, generated.used, xml)
             }
@@ -48,7 +51,7 @@ class PostRunHandler(private val project: Project, private val runDir: Path) : P
         }.queue()
     }
 
-    private class Generated(val xml: ByteArray, val pages: Int, val elements: Int, val used: Int)
+    private class Generated(val run: LocatorCoverageRun, val xml: ByteArray, val pages: Int, val elements: Int, val used: Int)
 
     private fun generate(runDir: Path): Generated? {
         if (!Files.isRegularFile(runDir.resolve(StrataGenerator.MANIFEST))) return null
@@ -57,6 +60,7 @@ class PostRunHandler(private val project: Project, private val runDir: Path) : P
         DefaultCoverageXmlWriter.write(run, out)
         val entries = run.pages.flatMap { page -> (page.modules + page.frames.flatMap { it.modules }).flatMap { it.elements } }
         return Generated(
+            run = run,
             xml = Files.readAllBytes(out),
             pages = run.pages.size,
             elements = entries.size,

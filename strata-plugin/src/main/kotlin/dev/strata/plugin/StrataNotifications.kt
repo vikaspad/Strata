@@ -6,6 +6,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.wm.ToolWindowManager
 
 object StrataNotifications {
     private const val GROUP = "Strata"
@@ -26,6 +27,9 @@ object StrataNotifications {
     fun generated(project: Project, pages: Int, elements: Int, used: Int, xml: VirtualFile) {
         NotificationGroupManager.getInstance().getNotificationGroup(GROUP)
             .createNotification(TITLE, summary(pages, elements, used), NotificationType.INFORMATION)
+            .addAction(NotificationAction.createSimple("Show Coverage") {
+                ToolWindowManager.getInstance(project).getToolWindow(CoverageToolWindowFactory.ID)?.activate(null)
+            })
             .addAction(NotificationAction.createSimpleExpiring("Open XML") {
                 FileEditorManager.getInstance(project).openFile(xml, true)
             })

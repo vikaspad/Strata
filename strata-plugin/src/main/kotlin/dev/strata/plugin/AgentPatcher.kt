@@ -25,6 +25,15 @@ class AgentPatcher : JavaProgramPatcher() {
 
     override fun patchJavaParameters(executor: Executor, configuration: RunProfile, javaParameters: JavaParameters) {
         if (executor.id != LocatorCoverageExecutor.ID) return
+        attach(configuration, javaParameters)
+    }
+
+    /**
+     * Adds the agent arguments; a no-op if they are already there. [LocatorCoverageRunner] calls this directly,
+     * because `DefaultJavaProgramRunner.patch` always reports the Run executor to programPatcher extensions.
+     */
+    fun attach(configuration: RunProfile, javaParameters: JavaParameters) {
+        if (javaParameters.vmParametersList.hasProperty("strata.out")) return
         val config = configuration as? RunConfigurationBase<*> ?: return
         val project = config.project
 

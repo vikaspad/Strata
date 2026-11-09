@@ -18,6 +18,8 @@
     <programRunner implementation="dev.strata.plugin.LocatorCoverageRunner"/>
     <java.programPatcher implementation="dev.strata.plugin.AgentPatcher"/>
     <notificationGroup id="Strata" displayType="BALLOON"/>
+    <toolWindow id="Locator Coverage" anchor="bottom" icon="/icons/locatorCoverage.svg"
+                factoryClass="dev.strata.plugin.CoverageToolWindowFactory"/>
   </extensions>
 
   <projectListeners>
